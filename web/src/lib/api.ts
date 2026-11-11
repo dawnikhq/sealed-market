@@ -194,6 +194,113 @@ export async function getNearWalletSelector(): Promise<WalletSelector> {
 }
 
 /**
+ * Capture `account_id` / `all_keys` returned by MyNearWallet redirect callback before
+ * `@near-js/wallet-account` strips them from `window.location.search`.
+ */
+export function consumeNearWalletCallback(): { accountId: string; publicKey: string } | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const currentUrl = new URL(window.location.href);
+    const urlAccountId = currentUrl.searchParams.get('account_id') || '';
+    const urlAllKeys = (currentUrl.searchParams.get('all_keys') || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const urlPublicKey = currentUrl.searchParams.get('public_key') || urlAllKeys[0] || '';
+
+    if (urlAccountId) {
+      localStorage.setItem('sealed_market_user_account', urlAccountId);
+      if (urlPublicKey) {
+        localStorage.setItem('sealed_market_user_pubkey', urlPublicKey);
+      }
+      localStorage.setItem('sealed_market_wallet_mode', 'my-near-wallet');
+      currentUrl.searchParams.delete('account_id');
+      currentUrl.searchParams.delete('public_key');
+      currentUrl.searchParams.delete('all_keys');
+      window.history.replaceState({}, document.title, currentUrl.toString());
+      return { accountId: urlAccountId, publicKey: urlPublicKey };
+    }
+
+    const storedAuth = localStorage.getItem('near_app_wallet_auth_key');
+    if (storedAuth) {
+      const parsed = JSON.parse(storedAuth) as { accountId?: string; allKeys?: string[] };
+      if (parsed?.accountId) {
+        return {
+          accountId: parsed.accountId,
+          publicKey: Array.isArray(parsed.allKeys) && parsed.allKeys[0] ? parsed.allKeys[0] : '',
+        };
+      }
+    }
+  } catch {
+    // ignore storage / URL errors
+  }
+  return null;
+}
+
+/**
+ * Redirect to MyNearWallet (`testnet.mynearwallet.com` or `app.mynearwallet.com`) via
+ * `@near-wallet-selector/my-near-wallet`. Uses `contractId: ''` unless live RPC contract is
+ * enabled so `near-api-js` does not reject with `AccountDoesNotExist` before redirecting.
+ */
+export async function signInWithMyNearWallet(
+  network: 'testnet' | 'mainnet' = 'testnet'
+): Promise<void> {
+  const callbackUrl = typeof window !== 'undefined' ? window.location.href : '';
+  if (network === 'mainnet') {
+    const loginUrl = new URL('/login/', 'https://app.mynearwallet.com');
+    loginUrl.searchParams.set('success_url', callbackUrl);
+    loginUrl.searchParams.set('failure_url', callbackUrl);
+    window.location.assign(loginUrl.toString());
+    return;
+  }
+
+  try {
+    const sel = await getNearWalletSelector();
+    const wallet = await sel.wallet('my-near-wallet');
+    await (
+      wallet as unknown as {
+        signIn: (opts: {
+          contractId: string;
+          methodNames?: string[];
+          successUrl?: string;
+          failureUrl?: string;
+        }) => Promise<void>;
+      }
+    ).signIn({
+      contractId: import.meta.env.VITE_USE_LIVE_NEAR_RPC === 'true' ? NEAR_CONTRACT_ID : '',
+      successUrl: callbackUrl,
+      failureUrl: callbackUrl,
+    });
+  } catch {
+    const loginUrl = new URL('/login/', 'https://testnet.mynearwallet.com');
+    loginUrl.searchParams.set('success_url', callbackUrl);
+    loginUrl.searchParams.set('failure_url', callbackUrl);
+    window.location.assign(loginUrl.toString());
+  }
+}
+
+/**
+ * Sign out of `@near-wallet-selector/my-near-wallet` and clear stored wallet credentials.
+ */
+export async function signOutNearWallet(): Promise<void> {
+  try {
+    const sel = await getNearWalletSelector();
+    const wallet = await sel.wallet('my-near-wallet');
+    await wallet.signOut();
+  } catch {
+    // ignore if not signed in via selector
+  }
+  try {
+    localStorage.removeItem('near_app_wallet_auth_key');
+    localStorage.removeItem('sealed_market_user_account');
+    localStorage.removeItem('sealed_market_user_pubkey');
+    localStorage.removeItem('sealed_market_wallet_mode');
+  } catch {
+    // ignore
+  }
+}
+
+/**
  * Generate a real NEAR Function-Call Access Key (`ed25519`) scoped to `market.sealed.near`
  * with method restrictions and spend allowance.
  */

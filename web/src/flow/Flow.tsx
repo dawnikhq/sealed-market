@@ -3,16 +3,21 @@ import {
   Activity,
   Bot,
   Check,
+  ExternalLink,
   KeyRound,
   Lock,
+  LogOut,
   Play,
   RefreshCw,
   ShieldCheck,
-  User,
+  Sparkles,
+  Wallet,
   X,
 } from 'lucide-react';
 import {
   buyAnswersEscrow,
+  consumeNearWalletCallback,
+  createGaslessNamedAccount,
   executeEnclaveQuery,
   fetchAttestation,
   fetchListings,
@@ -23,6 +28,8 @@ import {
   NEAR_CONTRACT_ID,
   runPrivateAppraisal,
   settleEscrowOnchain,
+  signInWithMyNearWallet,
+  signOutNearWallet,
   type Listing,
   type QueryLogRecord,
   type SettlementRecord,
@@ -77,8 +84,26 @@ export const Flow: React.FC = () => {
       return '';
     }
   });
+  const [accountPubKey, setAccountPubKey] = useState<string>(() => {
+    try {
+      return localStorage.getItem('sealed_market_user_pubkey') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [walletMode, setWalletMode] = useState<string>(() => {
+    try {
+      return localStorage.getItem('sealed_market_wallet_mode') || '';
+    } catch {
+      return '';
+    }
+  });
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [accountInput, setAccountInput] = useState('');
+  const [gaslessInput, setGaslessInput] = useState('');
+  const [connectingWallet, setConnectingWallet] = useState<'testnet' | 'mainnet' | 'gasless' | null>(
+    null
+  );
 
   // Onboarding guide modal (auto-opens on first landing for a brand-new user)
   const [showGuide, setShowGuide] = useState<boolean>(() => {
@@ -157,34 +182,96 @@ export const Flow: React.FC = () => {
   }, [loadAll]);
 
   useEffect(() => {
+    const callbackResult = consumeNearWalletCallback();
+    if (callbackResult) {
+      setAccount(callbackResult.accountId);
+      if (callbackResult.publicKey) setAccountPubKey(callbackResult.publicKey);
+      setWalletMode('my-near-wallet');
+      toast('NEAR Wallet connected', `Signed in as ${callbackResult.accountId}`, 'success');
+      return;
+    }
+
     getNearWalletSelector()
       .then((sel) => {
         const st = sel.store.getState();
         if (st.accounts.length > 0) {
           const walletAcct = st.accounts[0].accountId;
+          const pubKey = st.accounts[0].publicKey || '';
           setAccount(walletAcct);
+          if (pubKey) setAccountPubKey(pubKey);
+          setWalletMode('my-near-wallet');
           try {
             localStorage.setItem('sealed_market_user_account', walletAcct);
+            if (pubKey) localStorage.setItem('sealed_market_user_pubkey', pubKey);
+            localStorage.setItem('sealed_market_wallet_mode', 'my-near-wallet');
           } catch {
             // ignore
           }
         }
       })
       .catch(() => undefined);
-  }, []);
+  }, [toast]);
 
-  const connectNearWallet = async () => {
+  const connectNearWallet = async (network: 'testnet' | 'mainnet' = 'testnet') => {
+    setConnectingWallet(network);
     try {
-      const sel = await getNearWalletSelector();
-      const wallet = await sel.wallet('my-near-wallet');
-      await (wallet as unknown as { signIn: (o: unknown) => Promise<void> }).signIn({
-        contractId: NEAR_CONTRACT_ID,
-        methodNames: ['list_dataset', 'record_appraisal', 'buy', 'log_query', 'settle'],
-      });
-    } catch {
-      setAccountInput(account);
-      setShowAccountModal(true);
+      await signInWithMyNearWallet(network);
+    } catch (err) {
+      setConnectingWallet(null);
+      toast(
+        'Could not open NEAR Wallet',
+        err instanceof Error ? err.message : 'Wallet redirect failed',
+        'error'
+      );
     }
+  };
+
+  const handleCreateGaslessWallet = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const raw = gaslessInput.trim();
+    if (!raw) return;
+    setConnectingWallet('gasless');
+    try {
+      const res = await createGaslessNamedAccount({
+        email: raw.includes('@') ? raw : `${raw}@sealed.near`,
+        desiredPrefix: raw.split('@')[0],
+      });
+      setAccount(res.accountId);
+      setAccountPubKey(res.publicKey);
+      setWalletMode('gasless-relayer');
+      try {
+        localStorage.setItem('sealed_market_user_account', res.accountId);
+        localStorage.setItem('sealed_market_user_pubkey', res.publicKey);
+        localStorage.setItem('sealed_market_wallet_mode', 'gasless-relayer');
+      } catch {
+        // ignore
+      }
+      setGaslessInput('');
+      setShowAccountModal(false);
+      toast(
+        'Gasless NEAR Wallet created',
+        `${res.accountId} (${res.gasSponsoredNear} NEAR gas sponsored)`,
+        'success'
+      );
+    } catch (err) {
+      toast(
+        'Could not create wallet',
+        err instanceof Error ? err.message : 'Relayer error',
+        'error'
+      );
+    } finally {
+      setConnectingWallet(null);
+    }
+  };
+
+  const handleDisconnectWallet = async () => {
+    await signOutNearWallet();
+    setAccount('');
+    setAccountPubKey('');
+    setWalletMode('');
+    setAccountInput('');
+    setShowAccountModal(false);
+    toast('Wallet disconnected', 'You have signed out of your NEAR account');
   };
 
   const saveCustomAccount = (e: React.FormEvent) => {
@@ -193,8 +280,10 @@ export const Flow: React.FC = () => {
     if (!clean) return;
     const formatted = clean.includes('.') ? clean : `${clean}.sealed.near`;
     setAccount(formatted);
+    setWalletMode('custom-account');
     try {
       localStorage.setItem('sealed_market_user_account', formatted);
+      localStorage.setItem('sealed_market_wallet_mode', 'custom-account');
     } catch {
       // ignore
     }
@@ -525,19 +614,31 @@ export const Flow: React.FC = () => {
               </span>
             </button>
 
-            {/* User account button */}
+            {/* User account / NEAR Wallet button */}
             <button
               type="button"
               onClick={() => {
                 setAccountInput(account);
                 setShowAccountModal(true);
               }}
-              className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.03] px-3.5 py-1.5 text-xs text-ink-200 transition hover:border-white/40 hover:text-white"
+              className={cx(
+                'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs transition',
+                account
+                  ? 'border-white/30 bg-white/[0.08] text-white hover:border-white/60'
+                  : 'border-white bg-white font-medium text-black hover:bg-ink-100'
+              )}
             >
-              <User className="h-3.5 w-3.5 text-ink-400" />
-              <span className="font-mono">
-                {account ? account.replace('.sealed.near', '') : 'Sign in'}
-              </span>
+              {account ? (
+                <>
+                  <span className="h-2 w-2 rounded-full bg-white" />
+                  <span className="font-mono">{account.replace('.sealed.near', '')}</span>
+                </>
+              ) : (
+                <>
+                  <Wallet className="h-3.5 w-3.5" />
+                  <span>Connect Wallet</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -967,9 +1068,12 @@ export const Flow: React.FC = () => {
       {/* Account Sign-In / NEAR Wallet Modal */}
       {showAccountModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
-          <div className="w-full max-w-md animate-scale-in rounded-4xl border border-white/15 bg-ink-950 p-6 sm:p-8">
+          <div className="w-full max-w-lg animate-scale-in rounded-4xl border border-white/15 bg-ink-950 p-6 sm:p-8">
             <div className="flex items-center justify-between">
-              <span className="text-base font-medium">Your Account</span>
+              <div className="flex items-center gap-2">
+                <Wallet className="h-5 w-5 text-white" />
+                <span className="text-base font-medium">Connect NEAR Wallet</span>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowAccountModal(false)}
@@ -979,26 +1083,124 @@ export const Flow: React.FC = () => {
               </button>
             </div>
             <p className="mt-2 text-xs text-ink-300">
-              Enter your account name or connect a NEAR wallet to track your purchases and payouts.
+              Sign in with MyNearWallet, mint an instant gasless NEAR account in 1 click, or enter an existing
+              NEAR account ID.
             </p>
-            <form onSubmit={saveCustomAccount} className="mt-5 space-y-4">
-              <div>
-                <label className="label" htmlFor="acct-in">Account ID or username</label>
+
+            {/* Active connected account status */}
+            {account && (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-white/25 bg-white/[0.05] px-4 py-3.5">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-white" />
+                    <span className="truncate font-mono text-xs font-medium text-white">{account}</span>
+                    {walletMode && (
+                      <Pill tone="outline">
+                        {walletMode === 'my-near-wallet'
+                          ? 'MyNearWallet'
+                          : walletMode === 'gasless-relayer'
+                            ? 'Gasless Key'
+                            : 'Connected'}
+                      </Pill>
+                    )}
+                  </div>
+                  {accountPubKey && (
+                    <div className="mt-1 text-[11px] text-ink-400">
+                      Key: <Hash value={accountPubKey} head={10} tail={6} />
+                    </div>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDisconnectWallet}
+                  icon={<LogOut className="h-3.5 w-3.5" />}
+                >
+                  Disconnect
+                </Button>
+              </div>
+            )}
+
+            {/* Option 1: Official MyNearWallet Web Redirect */}
+            <div className="mt-5 rounded-3xl border border-white/12 bg-white/[0.03] p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-white">1. Connect MyNearWallet (Browser Redirect)</span>
+                <Pill tone="outline">@near-wallet-selector</Pill>
+              </div>
+              <p className="mt-1 text-[11px] text-ink-400">
+                Redirects to official MyNearWallet to authorize your account and returns you right back here.
+              </p>
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <Button
+                  size="sm"
+                  loading={connectingWallet === 'testnet'}
+                  onClick={() => connectNearWallet('testnet')}
+                  icon={<ExternalLink className="h-3.5 w-3.5" />}
+                >
+                  MyNearWallet (Testnet)
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={connectingWallet === 'mainnet'}
+                  onClick={() => connectNearWallet('mainnet')}
+                  icon={<ExternalLink className="h-3.5 w-3.5" />}
+                >
+                  MyNearWallet (Mainnet)
+                </Button>
+              </div>
+            </div>
+
+            {/* Option 2: Instant 1-Click Gasless NEAR Wallet (Relayer) */}
+            <form
+              onSubmit={handleCreateGaslessWallet}
+              className="mt-3 rounded-3xl border border-white/12 bg-white/[0.03] p-4"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-white">
+                  2. Create Instant Gasless NEAR Wallet (No Redirect)
+                </span>
+                <Pill tone="solid">Instant</Pill>
+              </div>
+              <p className="mt-1 text-[11px] text-ink-400">
+                Don&apos;t have a NEAR wallet extension? Enter your email or handle to generate an Ed25519 keypair and
+                a free <span className="font-mono text-white">.sealed.near</span> account immediately.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <input
+                  className="field flex-1 text-xs"
+                  required
+                  value={gaslessInput}
+                  onChange={(e) => setGaslessInput(e.target.value)}
+                  placeholder="you@company.com or username"
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  loading={connectingWallet === 'gasless'}
+                  icon={<Sparkles className="h-3.5 w-3.5" />}
+                >
+                  Create Free Wallet
+                </Button>
+              </div>
+            </form>
+
+            {/* Option 3: Existing Account ID */}
+            <form onSubmit={saveCustomAccount} className="mt-3 rounded-3xl border border-white/10 bg-white/[0.015] p-4">
+              <label className="text-xs font-medium text-ink-200" htmlFor="acct-in">
+                3. Or enter an existing NEAR Account ID
+              </label>
+              <div className="mt-2.5 flex flex-wrap gap-2">
                 <input
                   id="acct-in"
-                  className="field font-mono"
+                  className="field flex-1 font-mono text-xs"
                   required
                   value={accountInput}
                   onChange={(e) => setAccountInput(e.target.value)}
-                  placeholder="yourname.sealed.near"
+                  placeholder="yourname.near or yourname.testnet"
                 />
-              </div>
-              <div className="flex flex-wrap gap-2.5">
-                <Button type="submit" className="flex-1">
-                  Save account
-                </Button>
-                <Button variant="secondary" onClick={connectNearWallet}>
-                  Connect NEAR Wallet
+                <Button type="submit" variant="secondary" size="sm">
+                  Use Account ID
                 </Button>
               </div>
             </form>
