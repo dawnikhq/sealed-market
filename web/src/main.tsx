@@ -20,17 +20,17 @@ class RootErrorBoundary extends React.Component<
   render() {
     if (this.state.error) {
       return (
-        <div className="flex min-h-screen items-center justify-center bg-black p-6 text-white">
-          <div className="w-full max-w-xl rounded-4xl border border-white/15 p-8">
+        <div className="flex min-h-screen items-center justify-center bg-card p-6 text-fg">
+          <div className="w-full max-w-xl rounded-4xl border border-fg/15 p-8">
             <div className="eyebrow">Something broke</div>
             <h1 className="mt-3 font-display text-4xl">The interface hit an error.</h1>
-            <pre className="mt-6 max-h-72 overflow-auto whitespace-pre-wrap rounded-2xl bg-white/[0.04] p-4 font-mono text-xs text-ink-300">
+            <pre className="mt-6 max-h-72 overflow-auto whitespace-pre-wrap rounded-2xl bg-fg/[0.04] p-4 font-mono text-xs text-ink-300">
               {this.state.error.stack || this.state.error.message}
             </pre>
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="mt-6 h-11 rounded-full bg-white px-6 text-sm font-medium text-black"
+              className="mt-6 h-11 rounded-full bg-fg px-6 text-sm font-medium text-card"
             >
               Reload
             </button>

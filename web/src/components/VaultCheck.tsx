@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { fetchAttestation } from '../../lib/api';
-import { generateFreshNonceHex, verifyAttestationClientSide } from '../../lib/crypto';
-import { Button, CheckLine, Hash, KV, Pill } from '../../ui/kit';
+import { fetchAttestation } from '../lib/api';
+import { generateFreshNonceHex, verifyAttestationClientSide } from '../lib/crypto';
+import { Button, CheckLine, Hash, KV, Pill } from '../ui/kit';
 import type { VerifiedEnclave } from '../types';
 
-export const VerifyStep: React.FC<{
+export const VaultCheck: React.FC<{
   enclave: VerifiedEnclave | null;
   onVerified: (v: VerifiedEnclave | null) => void;
   onContinue: () => void;
@@ -44,10 +44,10 @@ export const VerifyStep: React.FC<{
 
   return (
     <div className="space-y-5">
-      <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+      <div className="rounded-3xl border border-fg/10 bg-fg/[0.03] p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-sm font-medium text-white">Security & Privacy Guarantee</div>
+            <div className="text-sm font-medium text-fg">Security & Privacy Guarantee</div>
             <p className="mt-1 text-xs text-ink-300">
               Your browser just checked that our private vault is genuine and hasn&apos;t been tampered with.
             </p>
@@ -61,7 +61,7 @@ export const VerifyStep: React.FC<{
           )}
         </div>
 
-        <div className="mt-5 space-y-3 border-t border-white/[0.08] pt-5">
+        <div className="mt-5 space-y-3 border-t border-fg/[0.08] pt-5">
           <CheckLine ok={check ? check.nonceBound : null} delay={0}>
             Live connection is fresh (not a replay)
           </CheckLine>
@@ -74,8 +74,8 @@ export const VerifyStep: React.FC<{
         </div>
 
         {error && (
-          <div className="mt-4 rounded-2xl border border-white/30 px-4 py-3 text-xs text-ink-100">
-            {error}. Make sure the backend is running on port 3001.
+          <div className="mt-4 rounded-2xl border border-fg/30 px-4 py-3 text-xs text-ink-100">
+            {error}.
           </div>
         )}
 
@@ -95,11 +95,11 @@ export const VerifyStep: React.FC<{
       </div>
 
       {att && (
-        <details className="group rounded-3xl border border-white/10 bg-white/[0.02] px-6 py-4">
-          <summary className="cursor-pointer list-none text-xs font-medium text-ink-300 transition hover:text-white">
+        <details className="group rounded-3xl border border-fg/10 bg-fg/[0.02] px-6 py-4">
+          <summary className="cursor-pointer list-none text-xs font-medium text-ink-300 transition hover:text-fg">
             View technical security certificate (TEE / ed25519)
           </summary>
-          <div className="mt-4 divide-y divide-white/[0.06] border-t border-white/[0.06] pt-2">
+          <div className="mt-4 divide-y divide-fg/[0.06] border-t border-fg/[0.06] pt-2">
             <KV k="Browser challenge (nonce)">
               <Hash value={att.nonce ?? pendingNonce ?? ''} head={10} tail={6} />
             </KV>

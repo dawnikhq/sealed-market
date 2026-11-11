@@ -75,11 +75,10 @@ export const AdminApp: React.FC = () => {
   const handleForceSettle = async (listingId: string, escrowId: string, release: boolean) => {
     if (!token) return;
     try {
-      const s = await settleEscrowOnchain({
-        listingId,
-        escrowId,
-        deliveredWithinRange: release,
-      });
+      const s = await settleEscrowOnchain(
+        { listingId, escrowId, deliveredWithinRange: release },
+        token
+      );
       toast(`Escrow ${s.outcome}`, `${escrowId} settled as ${s.id}`, 'success');
       await loadOverview(token);
     } catch (err) {
@@ -91,7 +90,7 @@ export const AdminApp: React.FC = () => {
     if (!token) return;
     try {
       await adminClearState(token);
-      toast('Enclave state cleared', 'All listings, escrows, queries, and settlements have been wiped.', 'success');
+      toast('Enclave state cleared', 'Orders, queries, settlements and uploaded listings were wiped. Sample listings were re-sealed.', 'success');
       await loadOverview(token);
     } catch (err) {
       toast('Clear failed', err instanceof Error ? err.message : 'Failed', 'error');
@@ -100,13 +99,13 @@ export const AdminApp: React.FC = () => {
 
   if (!token) {
     return (
-      <div className="backdrop-grain flex min-h-screen items-center justify-center bg-black px-5 text-white">
+      <div className="backdrop-grain flex min-h-screen items-center justify-center bg-card px-5 text-fg">
         <form
           onSubmit={handleLogin}
           className="surface w-full max-w-md animate-scale-in p-8 sm:p-10"
         >
           <div className="flex items-center justify-between">
-            <SealMark className="h-7 w-7 text-white" />
+            <SealMark className="h-7 w-7 text-fg" />
             <Pill tone="outline">
               <Lock className="h-3 w-3" /> /admin
             </Pill>
@@ -133,7 +132,7 @@ export const AdminApp: React.FC = () => {
           </div>
 
           {authError && (
-            <div className="mt-4 rounded-2xl border border-white/40 px-4 py-2.5 text-xs text-white">
+            <div className="mt-4 rounded-2xl border border-fg/40 px-4 py-2.5 text-xs text-fg">
               {authError}
             </div>
           )}
@@ -149,8 +148,8 @@ export const AdminApp: React.FC = () => {
   }
 
   return (
-    <div className="backdrop-grain min-h-screen bg-black text-white">
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-black/80 backdrop-blur-xl">
+    <div className="backdrop-grain min-h-screen bg-card text-fg">
+      <header className="sticky top-0 z-30 border-b border-fg/10 bg-neutral-900/50 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-3">
             <SealMark className="h-6 w-6" />
@@ -160,7 +159,7 @@ export const AdminApp: React.FC = () => {
           <div className="flex items-center gap-2.5">
             <a
               href="/"
-              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 px-4 text-xs text-ink-200 transition hover:border-white/40 hover:text-white"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-fg/15 px-4 text-xs text-ink-200 transition hover:border-fg/40 hover:text-fg"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Public flow
             </a>
@@ -228,7 +227,7 @@ export const AdminApp: React.FC = () => {
                 <div className="eyebrow">Escrows ({overview.escrows.length})</div>
                 <div className="mt-4 overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="border-b border-white/10 text-ink-400">
+                    <thead className="border-b border-fg/10 text-ink-400">
                       <tr>
                         <th className="py-2.5 pr-4">Escrow</th>
                         <th className="py-2.5 pr-4">Listing</th>
@@ -238,13 +237,13 @@ export const AdminApp: React.FC = () => {
                         <th className="py-2.5 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/[0.06] font-mono">
+                    <tbody className="divide-y divide-fg/[0.06] font-mono">
                       {overview.escrows.map((e) => (
                         <tr key={e.id}>
-                          <td className="py-3 pr-4 text-white">{e.id}</td>
+                          <td className="py-3 pr-4 text-fg">{e.id}</td>
                           <td className="py-3 pr-4 text-ink-200">{e.listing_id}</td>
                           <td className="py-3 pr-4 text-ink-300">{e.buyer}</td>
-                          <td className="py-3 pr-4 text-white">{e.amount_usdc.toFixed(2)} USDC</td>
+                          <td className="py-3 pr-4 text-fg">{e.amount_usdc.toFixed(2)} USDC</td>
                           <td className="py-3 pr-4">
                             <Pill tone={e.status === 'Funded' ? 'solid' : 'outline'}>{e.status}</Pill>
                           </td>
@@ -254,14 +253,14 @@ export const AdminApp: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleForceSettle(e.listing_id, e.id, true)}
-                                  className="rounded-full bg-white px-3 py-1 font-sans text-[11px] font-medium text-black"
+                                  className="rounded-full bg-fg px-3 py-1 font-sans text-xs font-medium text-card"
                                 >
                                   Release
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleForceSettle(e.listing_id, e.id, false)}
-                                  className="rounded-full border border-white/25 px-3 py-1 font-sans text-[11px] text-white"
+                                  className="rounded-full border border-fg/25 px-3 py-1 font-sans text-xs text-fg"
                                 >
                                   Refund
                                 </button>
@@ -282,9 +281,9 @@ export const AdminApp: React.FC = () => {
                   <div className="eyebrow">Listings & privacy budgets</div>
                   <div className="mt-4 space-y-3">
                     {overview.listings.map((l) => (
-                      <div key={l.id} className="rounded-3xl border border-white/10 p-4 text-xs">
+                      <div key={l.id} className="rounded-3xl border border-fg/10 p-4 text-xs">
                         <div className="flex items-center justify-between">
-                          <span className="font-mono text-white">{l.id}</span>
+                          <span className="font-mono text-fg">{l.id}</span>
                           <span className="font-mono text-ink-300">
                             score {l.latest_score?.toFixed(2) ?? '—'} · ε {l.epsilon_spent.toFixed(2)}/{l.epsilon_budget.toFixed(2)}
                           </span>
@@ -302,8 +301,8 @@ export const AdminApp: React.FC = () => {
                       <div className="text-xs text-ink-500">No NEP-366 accounts provisioned yet in this session.</div>
                     ) : (
                       overview.accounts.map((a) => (
-                        <div key={a.accountId} className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-2.5 text-xs">
-                          <span className="font-mono text-white">{a.accountId}</span>
+                        <div key={a.accountId} className="flex items-center justify-between rounded-2xl border border-fg/10 px-4 py-2.5 text-xs">
+                          <span className="font-mono text-fg">{a.accountId}</span>
                           <Hash value={a.publicKey} head={10} tail={6} />
                         </div>
                       ))
