@@ -279,7 +279,7 @@ async function main() {
     );
     const intentTxHash = `0x${sha256Hex(`1click:${policy.sourceChain}:${targetListing}:${Date.now()}`).slice(0, 64)}`;
     console.log(
-      `  • Routed 4.00 USDC from ${policy.sourceChain.toUpperCase()} via NEAR Intents 1Click (${intentTxHash.slice(0, 22)}...)`
+      `  • Routed ${buyPriceUsdc.toFixed(2)} USDC from ${policy.sourceChain.toUpperCase()} via NEAR Intents 1Click (${intentTxHash.slice(0, 22)}...)`
     );
 
     const buyRes = await fetch(`${baseUrl}/buy`, {
@@ -288,13 +288,16 @@ async function main() {
       body: JSON.stringify({
         listingId: targetListing,
         appraisalId: appraisal.appraisalId,
-        answers: 2,
+        answers: 1,
         buyer: policy.agentAccountId,
         amountUsdc: buyPriceUsdc,
         sourceChain: policy.sourceChain,
         intentTxHash,
       }),
     });
+    if (!buyRes.ok) {
+      throw new Error(`Buy HTTP ${buyRes.status}: ${await buyRes.text()}`);
+    }
     const buyData = (await buyRes.json()) as {
       escrow: { id: string; amount_usdc: number };
       token: { token_id: string; answers_left: number };

@@ -31,6 +31,10 @@ export interface Contributor {
 }
 
 export interface EnclaveListing {
+  /** True for the bundled fictional sample datasets from /data. */
+  is_sample?: boolean;
+  /** Sample listings only: start of the current hourly privacy-budget window. */
+  budget_window_start_ms?: number;
   id: string;
   title: string;
   description: string;
@@ -177,6 +181,53 @@ function isAdmin(req: Request): boolean {
   return constantTimeEquals(sig, expectedSig);
 }
 
+// Optional shared store. Serverless instances do not share memory or /tmp, so without this a
+// listing or order created on one instance is invisible to the next. When an Upstash-compatible
+// Redis REST endpoint is configured (Vercel KV / Upstash integration env vars), the whole state
+// snapshot is read before each request and written back after each change.
+// VERIFY: https://upstash.com/docs/redis/features/restapi
+const KV_URL = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '').replace(/\/+$/, '');
+const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
+const KV_KEY = process.env.SEALED_STATE_KEY || 'sealed-market:state:v2';
+export const sharedStoreEnabled = Boolean(KV_URL && KV_TOKEN);
+let pendingSharedSave: Promise<void> = Promise.resolve();
+let lastSharedJson = '';
+
+async function pushSharedState(json: string): Promise<void> {
+  try {
+    const res = await fetch(KV_URL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(['SET', KV_KEY, json]),
+    });
+    if (res.ok) lastSharedJson = json;
+    else console.error(`[Sealed Market TEE] Shared store write failed: HTTP ${res.status}`);
+  } catch (err) {
+    console.error('[Sealed Market TEE] Shared store write failed:', err);
+  }
+}
+
+async function pullSharedState(): Promise<void> {
+  if (!sharedStoreEnabled) return;
+  try {
+    const res = await fetch(KV_URL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(['GET', KV_KEY]),
+    });
+    if (!res.ok) {
+      console.error(`[Sealed Market TEE] Shared store read failed: HTTP ${res.status}`);
+      return;
+    }
+    const body = (await res.json()) as { result?: string | null };
+    if (typeof body.result !== 'string' || body.result === lastSharedJson) return;
+    applySnapshot(JSON.parse(body.result), true);
+    lastSharedJson = body.result;
+  } catch (err) {
+    console.error('[Sealed Market TEE] Shared store read failed:', err);
+  }
+}
+
 function saveStateSnapshot(): void {
   try {
     const snapshot = {
@@ -192,54 +243,64 @@ function saveStateSnapshot(): void {
       nextQuerySeq,
       nextSettlementSeq,
     };
-    fs.writeFileSync(STATE_SNAPSHOT_PATH, JSON.stringify(snapshot), 'utf8');
+    const json = JSON.stringify(snapshot);
+    if (sharedStoreEnabled) {
+      pendingSharedSave = pendingSharedSave.then(() => pushSharedState(json));
+    }
+    fs.writeFileSync(STATE_SNAPSHOT_PATH, json, 'utf8');
   } catch {
     // Non-fatal if filesystem is read-only
   }
 }
 
+function applySnapshot(raw: any, replace: boolean): void {
+  if (replace) {
+    sealedCsvStore.clear();
+    listingsStore.clear();
+    appraisalsStore.clear();
+    escrowsStore.clear();
+    tokensStore.clear();
+    namedAccountsStore.clear();
+    queriesStore.length = 0;
+    settlementsStore.length = 0;
+  }
+  if (Array.isArray(raw.sealedCsv)) for (const [k, v] of raw.sealedCsv) sealedCsvStore.set(k, v);
+  if (Array.isArray(raw.listings)) for (const [k, v] of raw.listings) listingsStore.set(k, v);
+  if (Array.isArray(raw.appraisals)) for (const [k, v] of raw.appraisals) appraisalsStore.set(k, v);
+  if (Array.isArray(raw.escrows)) for (const [k, v] of raw.escrows) escrowsStore.set(k, v);
+  if (Array.isArray(raw.tokens)) for (const [k, v] of raw.tokens) tokensStore.set(k, v);
+  if (Array.isArray(raw.queries) && queriesStore.length === 0) queriesStore.push(...raw.queries);
+  if (Array.isArray(raw.settlements) && settlementsStore.length === 0) {
+    settlementsStore.push(...raw.settlements);
+  }
+  if (Array.isArray(raw.namedAccounts)) {
+    for (const [k, v] of raw.namedAccounts) namedAccountsStore.set(k, v);
+  }
+  if (typeof raw.nextEscrowSeq === 'number') nextEscrowSeq = raw.nextEscrowSeq;
+  if (typeof raw.nextQuerySeq === 'number') nextQuerySeq = raw.nextQuerySeq;
+  if (typeof raw.nextSettlementSeq === 'number') nextSettlementSeq = raw.nextSettlementSeq;
+}
+
 function loadStateSnapshot(): void {
   try {
     if (!fs.existsSync(STATE_SNAPSHOT_PATH)) return;
-    const raw = JSON.parse(fs.readFileSync(STATE_SNAPSHOT_PATH, 'utf8'));
-    if (Array.isArray(raw.sealedCsv)) {
-      for (const [k, v] of raw.sealedCsv) sealedCsvStore.set(k, v);
-    }
-    if (Array.isArray(raw.listings)) {
-      for (const [k, v] of raw.listings) listingsStore.set(k, v);
-    }
-    if (Array.isArray(raw.appraisals)) {
-      for (const [k, v] of raw.appraisals) appraisalsStore.set(k, v);
-    }
-    if (Array.isArray(raw.escrows)) {
-      for (const [k, v] of raw.escrows) escrowsStore.set(k, v);
-    }
-    if (Array.isArray(raw.tokens)) {
-      for (const [k, v] of raw.tokens) tokensStore.set(k, v);
-    }
-    if (Array.isArray(raw.queries) && queriesStore.length === 0) {
-      queriesStore.push(...raw.queries);
-    }
-    if (Array.isArray(raw.settlements) && settlementsStore.length === 0) {
-      settlementsStore.push(...raw.settlements);
-    }
-    if (Array.isArray(raw.namedAccounts)) {
-      for (const [k, v] of raw.namedAccounts) namedAccountsStore.set(k, v);
-    }
-    if (typeof raw.nextEscrowSeq === 'number') nextEscrowSeq = raw.nextEscrowSeq;
-    if (typeof raw.nextQuerySeq === 'number') nextQuerySeq = raw.nextQuerySeq;
-    if (typeof raw.nextSettlementSeq === 'number') nextSettlementSeq = raw.nextSettlementSeq;
+    applySnapshot(JSON.parse(fs.readFileSync(STATE_SNAPSHOT_PATH, 'utf8')), false);
   } catch {
     // Ignore corrupted snapshot
   }
 }
 
 /**
- * Initialize enclave runtime. By default starts with clean, empty stores (no pre-populated mock data).
- * Pass `{ seed: true }` (or call `seedEnclaveFromDataDir()`) when running CLI seed/self-test workflows.
+ * Initialize enclave runtime. The three fictional sample datasets in `/data` are sealed and listed
+ * on startup (tagged `is_sample`) so the marketplace is never empty and every instance of a
+ * serverless deployment agrees on them. Set `SEED_DEMO_DATA=false` to start with no listings.
+ * Pass `{ seed: true }` (CLI seed) to also record one sample purchase, query and settlement.
  */
+const SAMPLE_LISTINGS_ENABLED = process.env.SEED_DEMO_DATA !== 'false';
+
 export async function initializeEnclaveState(options: { seed?: boolean } = {}): Promise<void> {
   loadStateSnapshot();
+  await pullSharedState();
   try {
     const holdoutPath = path.join(DATA_DIR, 'holdout_weekend_demand.csv');
     if (fs.existsSync(holdoutPath)) {
@@ -249,12 +310,14 @@ export async function initializeEnclaveState(options: { seed?: boolean } = {}): 
     defaultHoldoutCsv = '';
   }
 
-  if (options.seed || process.env.SEED_DEMO_DATA === 'true') {
-    await seedEnclaveFromDataDir();
+  if (options.seed || SAMPLE_LISTINGS_ENABLED) {
+    await seedEnclaveFromDataDir({ withActivity: Boolean(options.seed) });
   }
 }
 
-export async function seedEnclaveFromDataDir(): Promise<void> {
+export async function seedEnclaveFromDataDir(
+  options: { withActivity?: boolean } = {}
+): Promise<void> {
   if (listingsStore.has('ds_bike')) {
     return;
   }
@@ -346,6 +409,7 @@ export async function seedEnclaveFromDataDir(): Promise<void> {
 
     const listing: EnclaveListing = {
       id: cfg.id,
+      is_sample: true,
       title: cfg.title,
       description: cfg.description,
       seller_account: cfg.seller_account,
@@ -367,6 +431,11 @@ export async function seedEnclaveFromDataDir(): Promise<void> {
     };
 
     listingsStore.set(cfg.id, listing);
+  }
+
+  if (!options.withActivity) {
+    saveStateSnapshot();
+    return;
   }
 
   // Execute one real initial purchase, DP query, and Shapley settlement on `ds_bike`
@@ -554,10 +623,50 @@ function settleEscrowInternal(
   }
 }
 
+const SAMPLE_BUDGET_WINDOW_MS = 60 * 60 * 1000;
+
+/**
+ * The sample datasets are fictional, so their privacy budget refills every hour to keep the
+ * public demo usable. Real uploaded listings never refill: once spent, the dataset retires.
+ */
+function refreshSampleBudget(listing: EnclaveListing): void {
+  if (!listing.is_sample) return;
+  const now = Date.now();
+  if (now - (listing.budget_window_start_ms ?? 0) >= SAMPLE_BUDGET_WINDOW_MS) {
+    listing.budget_window_start_ms = now;
+    listing.epsilon_spent = 0;
+  }
+}
+
+const K_MIN_ROWS = 20;
+const QUALITY_GUARANTEE = 0.5;
+
+/** Whether an order's data met the quality guarantee, from the appraisal it was bought against. */
+function deliveryWithinRange(listing: EnclaveListing, escrowId?: string): boolean {
+  const escrow = escrowId ? escrowsStore.get(escrowId) : undefined;
+  const appraisal = escrow ? appraisalsStore.get(escrow.appraisal_id) : undefined;
+  const score =
+    appraisal && appraisal.listingId === listing.id ? appraisal.score : listing.latest_score ?? 0;
+  return score >= QUALITY_GUARANTEE;
+}
+
 export function createApp() {
   const app = express();
   app.use(cors());
   app.use(express.json({ limit: '10mb' }));
+
+  if (sharedStoreEnabled) {
+    // Read the shared snapshot before handling, and hold the response until any write has landed,
+    // because a serverless function may be frozen as soon as the response is sent.
+    app.use((_req: Request, res: Response, next) => {
+      const send = res.json.bind(res);
+      res.json = ((body: unknown) => {
+        pendingSharedSave.then(() => send(body));
+        return res;
+      }) as Response['json'];
+      pullSharedState().then(() => next(), () => next());
+    });
+  }
 
   app.get('/health', (_req: Request, res: Response) => {
     res.json({
@@ -686,7 +795,24 @@ export function createApp() {
         return;
       }
 
-      let resolvedListingId = fallbackListingId || 'ds_bike';
+      // Every answer must be paid for: a query without a funded answer pass is refused.
+      if (!tokenId) {
+        res.status(402).json({
+          code: 'PASS_REQUIRED',
+          error: 'An answer pass is required. Pay into escrow first to unlock answers.',
+        });
+        return;
+      }
+      const eps = Number(query.epsilon);
+      if (!Number.isFinite(eps) || eps < 0.1 || eps > 1) {
+        res.status(400).json({
+          code: 'INVALID_QUERY',
+          error: 'Privacy cost (epsilon) per answer must be between 0.1 and 1.',
+        });
+        return;
+      }
+
+      let resolvedListingId = fallbackListingId || '';
       let tokenRecord: EnclaveToken | undefined;
 
       if (tokenId) {
@@ -705,6 +831,14 @@ export function createApp() {
           });
           return;
         }
+        const tokenEscrow = escrowsStore.get(tokenRecord.escrow_id);
+        if (tokenEscrow && tokenEscrow.status !== 'Funded') {
+          res.status(400).json({
+            code: 'ORDER_CLOSED',
+            error: `This order is already ${tokenEscrow.status.toLowerCase()}. Buy a new pass to ask more questions.`,
+          });
+          return;
+        }
         resolvedListingId = tokenRecord.listing_id;
       }
 
@@ -713,6 +847,8 @@ export function createApp() {
         res.status(404).json({ error: `Listing "${resolvedListingId}" not found` });
         return;
       }
+
+      refreshSampleBudget(listing);
 
       const csvText = sealedCsvStore.get(resolvedListingId);
       if (!csvText) {
@@ -770,7 +906,7 @@ export function createApp() {
         answersLeft: logEntry.answers_left,
         teePubkey: getEnclavePubKey(),
         teeSig,
-        deliveredWithinRange: (listing.latest_score ?? 0) >= 0.5,
+        deliveredWithinRange: deliveryWithinRange(listing, tokenRecord?.escrow_id),
       });
     } catch (err) {
       if (err instanceof PrivacyGuardError) {
@@ -832,10 +968,19 @@ export function createApp() {
         return;
       }
 
-      const id =
-        listingId && listingId.trim().length > 0
-          ? listingId.trim()
-          : `ds_${listingsStore.size + 1}_${Date.now().toString(36).slice(-4)}`;
+      if (parsed.rows.length < K_MIN_ROWS) {
+        res.status(400).json({
+          error: `This file has ${parsed.rows.length} data rows. At least ${K_MIN_ROWS} are needed, because answers are only given for groups of ${K_MIN_ROWS} or more rows.`,
+        });
+        return;
+      }
+
+      // Never overwrite an existing listing: a taken ID gets a short suffix instead.
+      const wantedId = (listingId || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 32);
+      let id = wantedId || `ds_${Date.now().toString(36)}`;
+      while (listingsStore.has(id)) {
+        id = `${wantedId || 'ds'}_${randomBytes(2).toString('hex')}`;
+      }
 
       sealedCsvStore.set(id, plaintextCsv);
       const datasetHash = sha256Hex(plaintextCsv);
@@ -945,7 +1090,9 @@ export function createApp() {
    * 6. `GET /listings` & `GET /listings/:id`
    */
   app.get('/listings', (_req: Request, res: Response) => {
-    res.json(Array.from(listingsStore.values()));
+    const all = Array.from(listingsStore.values());
+    all.forEach(refreshSampleBudget);
+    res.json(all.sort((a, b) => b.created_at_ms - a.created_at_ms));
   });
 
   app.get('/listings/:id', (req: Request, res: Response) => {
@@ -991,7 +1138,18 @@ export function createApp() {
         listing.price_low && listing.price_high
           ? Number(((listing.price_low + listing.price_high) / 2).toFixed(2))
           : 4.0;
-      const totalUsdc = amountUsdc ?? Number((unitPrice * numAnswers).toFixed(2));
+      const totalUsdc = Number(amountUsdc ?? Number((unitPrice * numAnswers).toFixed(2)));
+      const floorUsdc = Number(((listing.price_low ?? unitPrice) * numAnswers).toFixed(2));
+      if (!Number.isFinite(totalUsdc) || totalUsdc + 1e-9 < floorUsdc) {
+        res.status(400).json({
+          error: `Payment of $${Number(totalUsdc || 0).toFixed(2)} is below the price of $${floorUsdc.toFixed(2)} for ${numAnswers} answer(s).`,
+        });
+        return;
+      }
+      if (numAnswers > 20) {
+        res.status(400).json({ error: 'A single pass can hold at most 20 answers.' });
+        return;
+      }
       const escrowId = `esc_${nextEscrowSeq++}`;
       const tokenId = `nep245:${listingId}:${escrowId}`;
       const buyerAccount = buyer || 'buyer.sealed.near';
@@ -1046,11 +1204,16 @@ export function createApp() {
         escrowId: string;
         deliveredWithinRange: boolean;
       };
-      const settlement = settleEscrowInternal(
-        listingId,
-        escrowId,
-        Boolean(deliveredWithinRange)
-      );
+      const listing = listingsStore.get(listingId);
+      if (!listing) {
+        res.status(404).json({ error: `Listing "${listingId}" not found` });
+        return;
+      }
+      // The outcome is decided here from the signed appraisal the order was bought against,
+      // not by whoever calls this endpoint. Only the operator can force the other outcome.
+      const measured = deliveryWithinRange(listing, escrowId);
+      const outcome = isAdmin(req) && typeof deliveredWithinRange === 'boolean' ? deliveredWithinRange : measured;
+      const settlement = settleEscrowInternal(listingId, escrowId, outcome);
       saveStateSnapshot();
       res.json(settlement);
     } catch (err) {
@@ -1066,7 +1229,9 @@ export function createApp() {
   app.get('/queries', (req: Request, res: Response) => {
     const lid = typeof req.query.listingId === 'string' ? req.query.listingId : undefined;
     const filtered = lid ? queriesStore.filter((q) => q.listing_id === lid) : queriesStore;
-    res.json(filtered);
+    // The public log proves a query ran (hashes, signature). The answer itself was paid for by
+    // its buyer and is not republished here.
+    res.json(filtered.map((q) => ({ ...q, noised_value: undefined })));
   });
 
   app.get('/settlements', (req: Request, res: Response) => {
@@ -1173,8 +1338,16 @@ export function createApp() {
     queriesStore.length = 0;
     settlementsStore.length = 0;
     namedAccountsStore.clear();
-    saveStateSnapshot();
-    res.json({ ok: true });
+    nextEscrowSeq = 1;
+    nextQuerySeq = 1;
+    nextSettlementSeq = 1;
+    const done = SAMPLE_LISTINGS_ENABLED ? seedEnclaveFromDataDir() : Promise.resolve();
+    done
+      .then(() => {
+        saveStateSnapshot();
+        res.json({ ok: true });
+      })
+      .catch((err) => res.status(500).json({ error: String(err) }));
   });
 
   return app;

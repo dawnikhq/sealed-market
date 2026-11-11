@@ -110,6 +110,7 @@ export interface Listing {
   latest_appraisal_id: string | null;
   latest_appraisal: AppraisalReport | null;
   created_at_ms: number;
+  is_sample?: boolean;
 }
 
 export interface QuerySpec {
@@ -570,14 +571,20 @@ export async function executeEnclaveQuery(params: {
   return res.json();
 }
 
-export async function settleEscrowOnchain(params: {
-  listingId: string;
-  escrowId: string;
-  deliveredWithinRange: boolean;
-}): Promise<SettlementRecord> {
+/**
+ * Settle an order. The service decides payout vs. refund from the signed appraisal the order was
+ * bought against; `deliveredWithinRange` is only honoured when an operator token is supplied.
+ */
+export async function settleEscrowOnchain(
+  params: { listingId: string; escrowId: string; deliveredWithinRange?: boolean },
+  adminToken?: string
+): Promise<SettlementRecord> {
   const res = await fetch(`${TEE_BASE_URL}/settle`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+    },
     body: JSON.stringify(params),
   });
   if (!res.ok) {

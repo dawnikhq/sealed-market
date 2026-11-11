@@ -1,5 +1,5 @@
-import type { AccessTokenRecord, AppraisalReport, AttestationData, SettlementRecord } from '../lib/api';
-import type { OneClickQuoteResponse, SupportedSourceChain } from '../lib/intents';
+import type { AccessTokenRecord, AppraisalReport, AttestationData, SettlementRecord } from './lib/api';
+import type { OneClickQuoteResponse, SupportedSourceChain } from './lib/intents';
 
 export interface AttestationCheck {
   valid: boolean;

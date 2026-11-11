@@ -38,18 +38,18 @@ export const Button: React.FC<
   ...rest
 }) => {
   const base =
-    'group relative inline-flex select-none items-center justify-center gap-2 rounded-full font-medium transition-all duration-300 ease-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.98]';
+    'group relative inline-flex select-none items-center justify-center gap-2 rounded-full font-medium transition-all duration-300 ease-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/60 focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.98]';
   const sizes: Record<ButtonSize, string> = {
-    sm: 'h-9 px-4 text-xs',
+    sm: 'h-10 px-4 text-sm',
     md: 'h-11 px-5 text-sm',
-    lg: 'h-14 px-7 text-[15px]',
+    lg: 'h-12 px-6 text-[15px]',
   };
   const variants: Record<ButtonVariant, string> = {
     primary:
-      'bg-white text-black hover:shadow-[0_0_0_6px_rgba(255,255,255,0.08)] hover:-translate-y-px',
+      'bg-fg text-card hover:bg-ink-100 hover:shadow-md',
     secondary:
-      'border border-white/15 bg-white/[0.03] text-white hover:border-white/40 hover:bg-white/[0.07]',
-    ghost: 'text-ink-300 hover:bg-white/[0.06] hover:text-white',
+      'border border-fg/15 bg-fg/[0.03] text-fg hover:border-fg/40 hover:bg-fg/[0.07]',
+    ghost: 'text-ink-300 hover:bg-fg/[0.06] hover:text-fg',
   };
   return (
     <button
@@ -73,16 +73,18 @@ export const Button: React.FC<
 
 export const Pill: React.FC<{
   children: React.ReactNode;
-  tone?: 'solid' | 'outline' | 'muted';
+  tone?: 'solid' | 'outline' | 'muted' | 'good' | 'bad';
   className?: string;
   dot?: boolean;
 }> = ({ children, tone = 'outline', className, dot }) => (
   <span
     className={cx(
-      'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium',
-      tone === 'solid' && 'bg-white text-black',
-      tone === 'outline' && 'border border-white/15 text-ink-100',
-      tone === 'muted' && 'bg-white/[0.06] text-ink-300',
+      'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium',
+      tone === 'solid' && 'bg-fg text-card',
+      tone === 'outline' && 'border border-fg/15 text-ink-100',
+      tone === 'muted' && 'bg-fg/[0.06] text-ink-300',
+      tone === 'good' && 'bg-good/10 text-good',
+      tone === 'bad' && 'bg-bad/10 text-bad',
       className
     )}
   >
@@ -90,7 +92,7 @@ export const Pill: React.FC<{
       <span
         className={cx(
           'h-1.5 w-1.5 rounded-full',
-          tone === 'solid' ? 'bg-black' : 'bg-white animate-breathe'
+          tone === 'solid' ? 'bg-card' : 'bg-fg animate-breathe'
         )}
       />
     )}
@@ -125,7 +127,7 @@ export const Hash: React.FC<{
         setTimeout(() => setCopied(false), 1200);
       }}
       className={cx(
-        'group inline-flex max-w-full items-center gap-1.5 rounded-full font-mono text-[12px] text-ink-200 transition-colors hover:text-white',
+        'group inline-flex max-w-full items-center gap-1.5 rounded-full font-mono text-[12px] text-ink-200 transition-colors hover:text-fg',
         className
       )}
     >
@@ -146,7 +148,7 @@ export const KV: React.FC<{ k: string; children: React.ReactNode; className?: st
 }) => (
   <div className={cx('flex items-center justify-between gap-4 py-2.5 text-sm', className)}>
     <span className="text-ink-400">{k}</span>
-    <span className="min-w-0 text-right text-white">{children}</span>
+    <span className="min-w-0 text-right text-fg">{children}</span>
   </div>
 );
 
@@ -162,9 +164,9 @@ export const CheckLine: React.FC<{ ok: boolean | null; children: React.ReactNode
     <span
       className={cx(
         'flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-all duration-500 ease-soft',
-        ok === null && 'border border-white/15',
-        ok === true && 'bg-white text-black',
-        ok === false && 'border border-white/40 text-white'
+        ok === null && 'border border-fg/15',
+        ok === true && 'bg-fg text-card',
+        ok === false && 'border border-fg/40 text-fg'
       )}
     >
       {ok === null ? (
@@ -175,7 +177,7 @@ export const CheckLine: React.FC<{ ok: boolean | null; children: React.ReactNode
         <X className="h-3.5 w-3.5" strokeWidth={3} />
       )}
     </span>
-    <span className={ok === false ? 'text-white line-through decoration-white/40' : 'text-ink-100'}>
+    <span className={ok === false ? 'text-fg line-through decoration-fg/40' : 'text-ink-100'}>
       {children}
     </span>
   </div>
@@ -209,12 +211,12 @@ export function Segmented<T extends string | number>({
   return (
     <div
       className={cx(
-        'relative inline-flex flex-wrap rounded-full border border-white/10 bg-white/[0.03] p-1',
+        'relative inline-flex flex-wrap rounded-full border border-fg/10 bg-fg/[0.03] p-1',
         className
       )}
     >
       <span
-        className="absolute bottom-1 top-1 rounded-full bg-white transition-all duration-500 ease-soft"
+        className="absolute bottom-1 top-1 rounded-full bg-fg transition-all duration-500 ease-soft"
         style={{ left: indicator.left, width: indicator.width }}
       />
       {options.map((o, i) => (
@@ -225,7 +227,7 @@ export function Segmented<T extends string | number>({
           onClick={() => onChange(o.value)}
           className={cx(
             'relative z-10 rounded-full px-4 py-2 text-xs font-medium transition-colors duration-300',
-            o.value === value ? 'text-black' : 'text-ink-300 hover:text-white'
+            o.value === value ? 'text-card' : 'text-ink-300 hover:text-fg'
           )}
         >
           {o.label}
@@ -254,12 +256,12 @@ export const ScoreRing: React.FC<{
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} fill="none" />
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="currentColor" strokeOpacity={0.1} strokeWidth={stroke} fill="none" />
         <circle
           cx={size / 2}
           cy={size / 2}
           r={r}
-          stroke="#fff"
+          stroke="currentColor"
           strokeWidth={stroke}
           strokeLinecap="round"
           fill="none"
@@ -270,13 +272,14 @@ export const ScoreRing: React.FC<{
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <CountUp
-          value={score ?? 0}
-          decimals={2}
-          className="font-mono tabular-nums text-white"
+          value={(score ?? 0) * 100}
+          decimals={0}
+          suffix="%"
+          className="font-mono font-medium tabular-nums text-fg"
           style={{ fontSize: Math.max(12, size * 0.22) }}
         />
         {label && size >= 90 && (
-          <span className="mt-0.5 text-[10px] uppercase tracking-[0.18em] text-ink-400">{label}</span>
+          <span className="mt-0.5 text-[11px] uppercase tracking-[0.18em] text-ink-400">{label}</span>
         )}
       </div>
     </div>
@@ -331,9 +334,9 @@ export const Bar: React.FC<{ value: number; className?: string; muted?: boolean 
     return () => cancelAnimationFrame(id);
   }, [value]);
   return (
-    <div className={cx('h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]', className)}>
+    <div className={cx('h-1.5 w-full overflow-hidden rounded-full bg-fg/[0.08]', className)}>
       <div
-        className={cx('h-full rounded-full', muted ? 'bg-white/40' : 'bg-white')}
+        className={cx('h-full rounded-full', muted ? 'bg-fg/40' : 'bg-fg')}
         style={{ width: `${w * 100}%`, transition: 'width 1.2s cubic-bezier(0.22, 1, 0.36, 1)' }}
       />
     </div>
@@ -411,15 +414,15 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <ToastCtx.Provider value={push}>
       {children}
-      <div className="pointer-events-none fixed bottom-6 left-1/2 z-[100] flex w-[min(92vw,420px)] -translate-x-1/2 flex-col gap-2">
+      <div className="pointer-events-none fixed bottom-24 left-1/2 z-[100] md:bottom-6 flex w-[min(92vw,420px)] -translate-x-1/2 flex-col gap-2">
         {items.map((t) => (
           <div
             key={t.id}
             className={cx(
               'pointer-events-auto flex animate-fade-up items-start gap-3 rounded-3xl px-5 py-4 shadow-2xl backdrop-blur-xl',
-              t.tone === 'success' && 'bg-white text-black',
-              t.tone === 'default' && 'border border-white/15 bg-ink-900/90 text-white',
-              t.tone === 'error' && 'border border-white/60 bg-black/90 text-white'
+              t.tone === 'success' && 'bg-fg text-card',
+              t.tone === 'default' && 'border border-fg/15 bg-card text-fg',
+              t.tone === 'error' && 'border border-bad/40 bg-card text-fg'
             )}
           >
             <div className="min-w-0 flex-1">
@@ -428,7 +431,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 <div
                   className={cx(
                     'mt-0.5 break-words text-xs leading-relaxed',
-                    t.tone === 'success' ? 'text-black/60' : 'text-ink-300'
+                    t.tone === 'success' ? 'text-card/60' : 'text-ink-300'
                   )}
                 >
                   {t.description}
@@ -447,6 +450,73 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ))}
       </div>
     </ToastCtx.Provider>
+  );
+};
+
+export function useMedia(query: string): boolean {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const update = () => setMatches(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, [query]);
+  return matches;
+}
+
+/* ─── Modal: bottom sheet on phones, centred dialog on larger screens ────── */
+
+export const Modal: React.FC<{
+  open: boolean;
+  onClose: () => void;
+  title: React.ReactNode;
+  icon?: React.ReactNode;
+  wide?: boolean;
+  children: React.ReactNode;
+}> = ({ open, onClose, title, icon, wide, children }) => {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex animate-fade-in items-end justify-center bg-neutral-900/50 backdrop-blur-sm sm:items-center sm:p-4"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className={cx(
+          'pb-safe flex max-h-[92dvh] w-full animate-sheet-up flex-col overflow-hidden rounded-t-3xl bg-card shadow-lift sm:animate-scale-in sm:rounded-3xl',
+          wide ? 'sm:max-w-2xl' : 'sm:max-w-lg'
+        )}
+      >
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-fg/10 px-5 py-4">
+          <div className="flex min-w-0 items-center gap-2.5 text-base font-semibold">
+            {icon}
+            <span className="truncate">{title}</span>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="-mr-2 flex h-10 w-10 items-center justify-center rounded-full text-ink-300 transition hover:bg-fg/[0.06] hover:text-fg"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">{children}</div>
+      </div>
+    </div>
   );
 };
 

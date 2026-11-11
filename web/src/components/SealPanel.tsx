@@ -5,9 +5,9 @@ import {
   uploadEncryptedDatasetAndPublish,
   type Contributor,
   type ViewPrice,
-} from '../../lib/api';
-import { encryptCsvToEnclaveClientSide } from '../../lib/crypto';
-import { Button, cx, Hash, KV, Pill, useToast } from '../../ui/kit';
+} from '../lib/api';
+import { encryptCsvToEnclaveClientSide } from '../lib/crypto';
+import { Button, cx, Hash, KV, Pill, useToast } from '../ui/kit';
 
 type Sub = 1 | 2 | 3;
 
@@ -44,16 +44,29 @@ function contributorsFromCsv(csv: string, fallbackAccount: string): Contributor[
 
 export const SealPanel: React.FC<{
   enclavePubKey: string | null;
-  onAccountCreated?: (accountId: string) => void;
+  /** Signed-in account, if any: the email step is skipped and payouts go here. */
+  signedInAccount?: string;
+  onAccountCreated?: (accountId: string, publicKey: string) => void;
   onPublished: (listingId: string) => Promise<void>;
-}> = ({ enclavePubKey, onAccountCreated, onPublished }) => {
+}> = ({ enclavePubKey, signedInAccount, onAccountCreated, onPublished }) => {
   const toast = useToast();
-  const [sub, setSub] = useState<Sub>(1);
+  const [sub, setSub] = useState<Sub>(signedInAccount ? 2 : 1);
 
   // 1 · real seller email & dataset slug (no pre-filled mock data)
   const [email, setEmail] = useState('');
   const [slug, setSlug] = useState('');
-  const [account, setAccount] = useState<NamedAccount | null>(null);
+  const [account, setAccount] = useState<NamedAccount | null>(
+    signedInAccount
+      ? {
+          accountId: signedInAccount,
+          datasetSubaccountId: '',
+          publicKey: '',
+          metaTxHash: '',
+          relayerSponsor: '',
+          gasSponsoredNear: '',
+        }
+      : null
+  );
   const [creating, setCreating] = useState(false);
 
   // 2 · real user CSV file
@@ -108,14 +121,9 @@ export const SealPanel: React.FC<{
         datasetSlug: slug.trim() || undefined,
       });
       setAccount(res);
-      try {
-        localStorage.setItem('sealed_market_user_account', res.accountId);
-      } catch {
-        // ignore storage errors
-      }
-      onAccountCreated?.(res.accountId);
+      onAccountCreated?.(res.accountId, res.publicKey);
       setContributors([{ account: res.accountId, rows: preview.total || 1 }]);
-      toast('Seller account created', `Your account ${res.accountId} is ready.`, 'success');
+      toast('Payout account ready', `${res.accountId} was created for free.`, 'success');
       setSub(2);
     } catch (err) {
       toast('Could not create profile', err instanceof Error ? err.message : 'Failed', 'error');
@@ -138,7 +146,7 @@ export const SealPanel: React.FC<{
       const out = await encryptCsvToEnclaveClientSide(csvText, enclavePubKey);
       setSealed(out);
       setContributors(contributorsFromCsv(csvText, account?.accountId || 'seller.sealed.near'));
-      toast('File locked in your browser', 'Nobody can ever view or download your raw rows.', 'success');
+      toast('File encrypted in your browser', 'Only the vault can open it.', 'success');
     } catch (err) {
       toast('Could not lock file', err instanceof Error ? err.message : 'Encryption error', 'error');
     } finally {
@@ -181,43 +189,34 @@ export const SealPanel: React.FC<{
   };
 
   const subs: { n: Sub; label: string; enabled: boolean }[] = [
-    { n: 1, label: 'Your Email', enabled: true },
-    { n: 2, label: 'Upload & Lock CSV', enabled: Boolean(account) },
-    { n: 3, label: 'Set Price & Publish', enabled: Boolean(sealed) },
+    { n: 1, label: 'Your email', enabled: true },
+    { n: 2, label: 'Upload and encrypt', enabled: Boolean(account) },
+    { n: 3, label: 'Price and publish', enabled: Boolean(sealed) },
   ];
 
   return (
-    <div className="surface p-6 sm:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
-        <div>
-          <div className="eyebrow">List your dataset</div>
-          <div className="mt-1 font-display text-3xl">Earn whenever someone asks a question</div>
-          <p className="mt-1 text-xs text-ink-300">
-            Buyers only get aggregate answers — your spreadsheet stays locked inside the private vault.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {subs.map((s, i) => (
-            <React.Fragment key={s.n}>
-              <button
-                type="button"
-                disabled={!s.enabled}
-                onClick={() => setSub(s.n)}
-                className={cx(
-                  'rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-300',
-                  sub === s.n
-                    ? 'bg-white text-black'
-                    : s.enabled
-                      ? 'border border-white/15 text-ink-200 hover:bg-white/10'
-                      : 'text-ink-600'
-                )}
-              >
-                {s.n}. {s.label}
-              </button>
-              {i < subs.length - 1 && <span className="h-px w-4 bg-white/15" />}
-            </React.Fragment>
-          ))}
-        </div>
+    <div className="surface p-5 sm:p-8">
+      <div className="no-scrollbar -mx-5 flex items-center gap-2 overflow-x-auto border-b border-fg/10 px-5 pb-4 sm:mx-0 sm:px-0">
+        {subs.map((st, i) => (
+          <React.Fragment key={st.n}>
+            <button
+              type="button"
+              disabled={!st.enabled}
+              onClick={() => setSub(st.n)}
+              className={cx(
+                'flex h-10 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm font-medium transition',
+                sub === st.n
+                  ? 'bg-fg text-card'
+                  : st.enabled
+                    ? 'border border-fg/15 text-ink-200 hover:border-fg/40'
+                    : 'text-ink-500'
+              )}
+            >
+              <span className="font-mono text-sm opacity-70">{st.n}</span> {st.label}
+            </button>
+            {i < subs.length - 1 && <span className="h-px w-4 shrink-0 bg-fg/15" />}
+          </React.Fragment>
+        ))}
       </div>
 
       {/* 1 — email */}
@@ -245,8 +244,8 @@ export const SealPanel: React.FC<{
               placeholder="e.g. retail_demand_2026"
             />
           </div>
-          <p className="text-xs leading-relaxed text-ink-400 md:col-span-2">
-            We create your payout account automatically for free — no crypto wallet or transaction fees required.
+          <p className="text-sm leading-relaxed text-ink-400 md:col-span-2">
+            We create your payout account for free. No crypto wallet or fees needed.
           </p>
           <div className="md:col-span-2">
             <Button
@@ -255,7 +254,7 @@ export const SealPanel: React.FC<{
               disabled={!email.trim()}
               trailing={<ArrowRight className="h-4 w-4" />}
             >
-              Continue with email (Free)
+              Continue with email
             </Button>
           </div>
         </form>
@@ -264,16 +263,16 @@ export const SealPanel: React.FC<{
       {/* 2 — upload real CSV + lock */}
       {sub === 2 && (
         <div className="mt-6 animate-fade-up space-y-6">
-          <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-4xl border border-dashed border-white/25 bg-white/[0.02] p-8 text-center transition hover:border-white/50 hover:bg-white/[0.04]">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-black">
+          <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-fg/25 bg-ink-900 p-8 text-center transition hover:border-fg/50 hover:bg-fg/[0.04]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-fg text-card">
               {fileName ? <FileSpreadsheet className="h-6 w-6" /> : <FileUp className="h-6 w-6" />}
             </div>
             <div>
-              <div className="text-sm font-medium text-white">
-                {fileName ? `Selected: ${fileName}` : 'Click to upload a .CSV spreadsheet from your computer'}
+              <div className="text-sm font-medium text-fg">
+                {fileName ? `Selected: ${fileName}` : 'Choose a CSV file'}
               </div>
-              <div className="mt-1 text-xs text-ink-400">
-                Include a header row and at least 20 data rows. Your file is encrypted right inside your browser.
+              <div className="mt-1 text-sm text-ink-400">
+                Needs a header row and at least 20 data rows. It is encrypted in your browser before upload.
               </div>
             </div>
             <input
@@ -285,17 +284,17 @@ export const SealPanel: React.FC<{
           </label>
 
           {preview.header.length > 0 && (
-            <div className="overflow-hidden rounded-3xl border border-white/10">
-              <div className="flex items-center justify-between border-b border-white/10 px-5 py-3 text-xs">
+            <div className="overflow-hidden rounded-3xl border border-fg/10">
+              <div className="flex items-center justify-between border-b border-fg/10 px-5 py-3 text-sm">
                 <span className="text-ink-300">
                   {sealed
-                    ? 'Locked — rows are now scrambled and unreadable'
-                    : 'Local browser preview (never uploaded in plaintext)'}
+                    ? 'Encrypted. Only the vault can read these rows now'
+                    : 'Preview on your device only. Nothing is uploaded yet'}
                 </span>
                 <span className="font-mono text-ink-300">{preview.total} rows</span>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-left font-mono text-[11px]">
+                <table className="w-full text-left font-mono text-sm">
                   <thead className="text-ink-400">
                     <tr>
                       {preview.header.map((h) => (
@@ -307,7 +306,7 @@ export const SealPanel: React.FC<{
                   </thead>
                   <tbody className={cx('transition-all duration-700', sealed && 'blur-[4px] opacity-35')}>
                     {preview.rows.map((r, i) => (
-                      <tr key={i} className="border-t border-white/[0.05] text-ink-200">
+                      <tr key={i} className="border-t border-fg/[0.05] text-ink-200">
                         {r.map((c, j) => (
                           <td key={j} className="whitespace-nowrap px-4 py-2">
                             {c}
@@ -329,30 +328,30 @@ export const SealPanel: React.FC<{
               disabled={!csvText.trim() || !enclavePubKey}
               icon={sealed ? <Check className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
             >
-              {sealed ? 'Locked in browser (Encrypt again)' : 'Lock & encrypt file in browser'}
+              {sealed ? 'Encrypted. Encrypt again' : 'Encrypt file in browser'}
             </Button>
             {sealed && (
               <Button onClick={() => setSub(3)} trailing={<ArrowRight className="h-4 w-4" />}>
-                Next: Set price & publish
+                Next: price and publish
               </Button>
             )}
           </div>
 
           {sealed && (
-            <details className="rounded-2xl border border-white/10 px-4 py-3 text-xs text-ink-400">
+            <details className="rounded-2xl border border-fg/10 px-4 py-3 text-sm text-ink-400">
               <summary className="cursor-pointer list-none font-medium text-ink-300">
                 View encryption details (AES-256-GCM)
               </summary>
               <div className="mt-3 grid gap-x-8 sm:grid-cols-2">
                 <KV k="Encrypted size">
-                  <span className="font-mono text-xs">{sealed.byteLength.toLocaleString()} bytes</span>
+                  <span className="font-mono text-sm">{sealed.byteLength.toLocaleString()} bytes</span>
                 </KV>
                 <KV k="File fingerprint">
                   <Hash value={sealed.datasetHashHex} />
                 </KV>
                 {account && (
                   <KV k="Payout account">
-                    <span className="font-mono text-xs">{account.accountId}</span>
+                    <span className="font-mono text-sm">{account.accountId}</span>
                   </KV>
                 )}
                 <KV k="Locked to vault key">
@@ -393,8 +392,8 @@ export const SealPanel: React.FC<{
 
           <div>
             <div className="flex items-center justify-between">
-              <span className="label">Total question limit (Privacy budget: {epsilon.toFixed(1)})</span>
-              <span className="font-mono text-xs text-ink-300">~{Math.round(epsilon / 0.5)} standard answers</span>
+              <span className="label">How many questions can ever be answered?</span>
+              <span className="font-mono text-sm text-ink-200">about {Math.floor(epsilon / 0.5)} answers</span>
             </div>
             <input
               type="range"
@@ -405,19 +404,19 @@ export const SealPanel: React.FC<{
               onChange={(e) => setEpsilon(Number(e.target.value))}
               className="w-full"
             />
-            <div className="mt-1 flex justify-between text-[11px] text-ink-500">
-              <span>Stricter privacy (fewer total queries allowed)</span>
-              <span>More queries allowed before dataset retires</span>
+            <div className="mt-1 flex justify-between text-sm text-ink-500">
+              <span>Fewer answers, stronger privacy</span>
+              <span>More answers before the dataset retires</span>
             </div>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
             <div>
               <div className="flex items-center justify-between">
-                <span className="label">Question types & price ($ USD)</span>
+                <span className="label">Price per answer (USD)</span>
                 <button
                   type="button"
-                  className="text-ink-400 transition hover:text-white"
+                  className="text-ink-400 transition hover:text-fg"
                   onClick={() => setViews((v) => [...v, { name: `tier_${v.length + 1}`, price_usdc: 4 }])}
                   aria-label="Add price tier"
                 >
@@ -428,14 +427,14 @@ export const SealPanel: React.FC<{
                 {views.map((v, i) => (
                   <div key={i} className="flex gap-2">
                     <input
-                      className="field font-mono text-xs"
+                      className="field font-mono"
                       value={v.name}
                       onChange={(e) =>
                         setViews((all) => all.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))
                       }
                     />
                     <input
-                      className="field w-28 font-mono text-xs"
+                      className="field w-24 shrink-0 font-mono"
                       type="number"
                       step="0.5"
                       min="0.5"
@@ -448,7 +447,7 @@ export const SealPanel: React.FC<{
                     />
                     <button
                       type="button"
-                      className="px-2 text-ink-500 transition hover:text-white disabled:opacity-30"
+                      className="px-2 text-ink-500 transition hover:text-fg disabled:opacity-30"
                       disabled={views.length <= 1}
                       onClick={() => setViews((all) => all.filter((_, j) => j !== i))}
                       aria-label="Remove tier"
@@ -462,10 +461,10 @@ export const SealPanel: React.FC<{
 
             <div>
               <div className="flex items-center justify-between">
-                <span className="label">Who contributed rows (paid automatically)</span>
+                <span className="label">Who contributed rows, and how many</span>
                 <button
                   type="button"
-                  className="text-ink-400 transition hover:text-white"
+                  className="text-ink-400 transition hover:text-fg"
                   onClick={() =>
                     setContributors((c) => [
                       ...c,
@@ -481,7 +480,7 @@ export const SealPanel: React.FC<{
                 {contributors.map((c, i) => (
                   <div key={i} className="flex gap-2">
                     <input
-                      className="field font-mono text-xs"
+                      className="field font-mono"
                       value={c.account}
                       onChange={(e) =>
                         setContributors((all) =>
@@ -490,7 +489,7 @@ export const SealPanel: React.FC<{
                       }
                     />
                     <input
-                      className="field w-24 font-mono text-xs"
+                      className="field w-20 shrink-0 font-mono"
                       type="number"
                       min="1"
                       value={c.rows}
@@ -502,7 +501,7 @@ export const SealPanel: React.FC<{
                     />
                     <button
                       type="button"
-                      className="px-2 text-ink-500 transition hover:text-white disabled:opacity-30"
+                      className="px-2 text-ink-500 transition hover:text-fg disabled:opacity-30"
                       disabled={contributors.length <= 1}
                       onClick={() => setContributors((all) => all.filter((_, j) => j !== i))}
                       aria-label="Remove contributor"
@@ -522,9 +521,9 @@ export const SealPanel: React.FC<{
               disabled={!sealed}
               trailing={<ArrowRight className="h-4 w-4" />}
             >
-              Publish encrypted dataset
+              Publish dataset
             </Button>
-            <Pill tone="muted">Every contributor is paid automatically by how useful their rows are</Pill>
+            <span className="text-sm text-ink-400">Contributors are paid by how useful their rows are.</span>
           </div>
         </div>
       )}

@@ -22,7 +22,7 @@
 
 Normally, once you send someone a CSV spreadsheet, they can copy or share your raw file forever. **Sealed Market** solves both sides of the data trade:
 
-- **For Data Owners (Sellers)**: You upload your `.csv` spreadsheet in your browser. Before it ever leaves your computer, your browser locks it with `AES-256-GCM` encryption bound to the private vault's public key. Nobody can ever download or view your individual rows — buyers only pay to ask aggregate questions (averages, sums, counts, mins, maxes).
+- **For Data Owners (Sellers)**: You upload your `.csv` spreadsheet in your browser. Before it ever leaves your computer, your browser locks it with `AES-256-GCM` encryption bound to the private vault's public key. Buyers never download or view your individual rows — they only pay to ask aggregate questions (averages, sums, counts, mins, maxes).
 - **For Data Buyers**: You never buy blind. Before spending a cent, you run a **Free Quality Check** inside the private vault to see how complete, unique, and up-to-date the dataset is, and how much it boosts prediction accuracy for your goal.
 - **100% Buyer & Seller Protection**: Payments are held in escrow until your questions are answered. If the dataset meets the quality guarantee, 95% of the payment is distributed automatically across every data contributor based on their **Monte Carlo Shapley** contribution (with a 5% platform fee). If the dataset fails the quality guarantee, 100% of the payment is automatically refunded to the buyer with zero fee.
 
@@ -70,16 +70,18 @@ sealed-market/
 │       └── self-test.ts      # End-to-end cryptographic, ML, Shapley, and DP verification suite
 ├── api/                      # Vercel Serverless API bridge (`api/index.ts` -> mounts `/tee` Express app)
 │   └── index.ts
-├── web/                      # React + Vite + Tailwind CSS Frontend (Monochrome Single-Flow Web2 UI)
+├── web/                      # React + Vite + Tailwind CSS marketplace frontend (light, mobile-first)
 │   └── src/
+│       ├── App.tsx           # Path router: /, /d/:id, /orders, /orders/:id, /sell, /auto-buy, /admin
+│       ├── store.tsx         # Catalogue, vault check, account, and orders (persisted in localStorage)
+│       ├── pages/            # HomePage, ListingPage, OrdersPage (+ OrderPage), SellPage, AutoBuyPage
+│       ├── components/       # Shell, ListingCard, QualityCheck, BuyBox, AskPanel, SettlePanel,
+│       │                     # SealPanel, VaultCheck, GuideModal, AccountPanel
 │       ├── lib/intents.ts    # NEAR Intents / 1Click quote + execute adapter
 │       ├── lib/crypto.ts     # Browser @noble/ed25519 verify + WebCrypto AES-256-GCM sealing
 │       ├── lib/api.ts        # @near-wallet-selector/core + near-api-js + TEE client
-│       ├── ui/kit.tsx        # Monochrome design kit (ScoreRing, CountUp, Reveal, Segmented, Toasts)
-│       ├── flow/             # Guided 5-step Web2 flow + OnboardingModal + Autonomous AI Buyer Bot
-│       │   ├── Flow.tsx
-│       │   ├── OnboardingModal.tsx
-│       │   └── steps/        # VerifyStep, DatasetStep, SealPanel, AppraiseStep, PayStep, AskStep, SettleStep
+│       ├── lib/router.tsx    # Minimal history router
+│       ├── ui/kit.tsx        # Design kit (Button, Pill, Modal, ScoreRing, CountUp, Bar, Toasts)
 │       └── admin/            # Unlinked operator console (`/admin`, server-side HMAC password auth)
 │           └── AdminApp.tsx
 ├── agent/                    # Autonomous Agent Buyer CLI (near-api-js Function-Call Access Key)
@@ -101,7 +103,7 @@ sealed-market/
 
 | Capability | Where It Runs | How It Works in the Real App |
 | :--- | :--- | :--- |
-| **Interactive First-Time User Guide** | `web/src/flow/OnboardingModal.tsx` | Automatically opens on first visit (`localStorage`) with a 4-step walkthrough for sellers & buyers; re-openable anytime via **How it works** in the top bar. |
+| **How-it-works Guide** | `web/src/components/GuideModal.tsx` | A 4-slide walkthrough for sellers and buyers, opened from **How it works** (it does not open by itself). |
 | **NEAR Wallet & Instant Gasless Auth** | `web/src/lib/api.ts` + `POST /relayer/create-account` | Click **Connect Wallet** in the header to sign in via **MyNearWallet** (`@near-wallet-selector/my-near-wallet` on Testnet or Mainnet), generate a 1-click **Instant Gasless NEAR Wallet** (`ed25519` keypair + `*.sealed.near` account via NEP-366 meta-tx relayer), or enter an existing `.near`/`.testnet` account. |
 | **Client-Side Remote Attestation** | `web/src/lib/crypto.ts` + `tee/attestation.ts` | Generates a fresh 16-byte cryptographic nonce in the browser, binds `sha256(nonce)` and `enclavePubKey` into `report_data[0..64]`, and verifies the 64-byte `ed25519` quote signature client-side. |
 | **Gasless Seller Account Creation** | `POST /relayer/create-account` | Provisions a `*.sealed.near` account and dataset revenue subaccount from the seller's email via a gasless NEP-366 meta-transaction relayer receipt. |
@@ -111,34 +113,42 @@ sealed-market/
 | **Cross-Chain Payment via NEAR Intents** | `web/src/lib/intents.ts` + `POST /buy` | Requests a 1Click swap quote (`Base`, `Arbitrum`, `Solana`, or `NEAR` USDC), funds escrow on `market.sealed.near`, and mints a scoped **NEP-245** multi-token answer pass (`nep245:<listing>:<escrow>`). |
 | **Differential Privacy & $k \ge 20$ Guard** | `tee/src/dp.ts` + `POST /query` | Executes `AVG`, `SUM`, `COUNT`, `MIN`, `MAX` queries with cryptographically sampled Laplace noise $\text{Lap}(\Delta f / \varepsilon)$, decrements $\varepsilon$ and pass credits, and blocks any subgroup query with $k < 20$ matching rows (`K_ANONYMITY_VIOLATION`). |
 | **Automatic Shapley Payout or 100% Refund** | `POST /settle` + `contract/src/lib.rs` | If quality meets the appraised range, distributes 95% of escrow across contributors by Shapley weights (5% platform fee). If quality falls short, refunds 100% of escrow to the buyer with 0 fee. |
-| **Autonomous AI Buyer Bot** | `web/src/flow/Flow.tsx` + `agent/buyer.js` | Generates a real scoped NEAR Function-Call Access Key (`buy`, `log_query`, `settle`) and runs the full 6-step verify → appraise → Intents pay → DP query → settle/refund loop with zero clicks. |
+| **Autonomous AI Buyer Bot** | `web/src/pages/AutoBuyPage.tsx` + `agent/buyer.js` | Generates a real scoped NEAR Function-Call Access Key (`buy`, `log_query`, `settle`) and runs the full 6-step verify → appraise → Intents pay → DP query → settle/refund loop with zero clicks. |
 | **Unlinked Operator Console (`/admin`)** | `web/src/admin/AdminApp.tsx` + `/admin/*` | Accessible only by typing `/admin` in the URL bar. Authenticates against `process.env.ADMIN_PASSWORD` on the server (never bundled in frontend code) to inspect telemetry, settle escrows, or clear state. |
 
 ---
 
 ## End-to-End User Flow in the Live Web App
 
-The frontend is designed as a single, intuitive 5-step Web2 product flow in a monochrome black-and-white theme:
+The frontend is a light, monochrome marketplace laid out like a conventional web shop (browse grid, product page with a sticky purchase card, order page). It is built mobile-first: a bottom tab bar, bottom-sheet dialogs, 16px inputs and a sticky price bar on phones.
 
-1. **First-Landing Onboarding Guide (`How it works`)**
-   - On your first visit, a 4-slide guide modal walks through how selling and buying answers works. Click **Upload & Sell My Data** on the final slide (or **Sell your own data** on Step 1) to list a dataset.
-2. **Step 1 — Choose Data (or Upload & Seal Your Own CSV)**
-   - Click **Sell your own data** to open the 3-step seller form:
-     1. **Your Email**: Enter your email address and an optional dataset ID to create your free `*.sealed.near` payout profile.
-     2. **Upload & Lock CSV**: Select any `.csv` file from your computer (with at least 20 rows) and click **Lock & encrypt file in browser** (runs WebCrypto `AES-256-GCM`).
-     3. **Set Price & Publish**: Set your title, price per question, privacy budget $\varepsilon$, and contributor list, then click **Publish encrypted dataset**.
-3. **Step 2 — Free Quality Check**
-   - Automatically runs a private appraisal inside the vault when you select a dataset.
-   - Displays the animated **Quality Score** ring, fair price range, prediction accuracy & ROC-AUC lift, 4 data health bars (*Complete data*, *Unique rows*, *Up-to-date records*, *Columns match your goal*), and the contributor payout split.
-4. **Step 3 — Quick Checkout**
-   - Pick how many answers you want (`1`, `2`, `3`, or `5`) and your payment network (`Base`, `Arbitrum`, `Solana`, or `NEAR`), then click **Pay & Unlock Answers** to fund escrow and mint your NEP-245 answer pass.
-5. **Step 4 — Ask Questions**
-   - Use the one-click quick action buttons (*Calculate average* or *Test privacy block (< 20 rows)*) or choose any operation (`AVG`, `SUM`, `COUNT`, `MIN`, `MAX`), column, and filter condition.
-   - View the verified Differentially-Private answer, 95% confidence interval, and remaining pass credits.
-6. **Step 5 — Finish Order & Automatic Payout**
-   - Click **Finish & Pay Contributors** (or **Claim 100% Full Refund** if the dataset failed the quality standard) and inspect the itemized payout receipt in **Recent Purchases & Answers**.
-7. **Auto-Buy Bot (Header Button)**
-   - Click **Auto-Buy Bot** in the top bar, choose any published dataset, set your minimum quality threshold and maximum price, and click **Run Auto-Buy Bot** to stream the 6-step autonomous execution trace.
+| Route | What it is |
+| :--- | :--- |
+| `/` | **Browse**: search, filter chips, sort, dataset cards (quality, price per answer, rows, seller), how-it-works, recent activity. |
+| `/d/:id` | **Dataset page**: description, columns, the **free quality check** (signed score, fair price, health bars, payout split), privacy budget, and the purchase card (1, 2, 3 or 5 answers; Base, Arbitrum, Solana or NEAR). |
+| `/orders/:id` | **Order page**: ask questions (`AVG`, `SUM`, `COUNT`, `MIN`, `MAX` with an optional filter), see the signed answer and 95% range, then **finish** to pay contributors or receive the refund. |
+| `/orders` | **Orders**: your orders (kept in this browser, so they survive a reload) and the public activity log. |
+| `/sell` | **Sell**: email (skipped when signed in) → choose a CSV and encrypt it in the browser → price, privacy budget, contributors → publish. |
+| `/auto-buy` | **Auto-buy bot**: set minimum quality, maximum price and a key spend limit; watch the six-step run. |
+| `/admin` | Operator console (not linked anywhere). |
+
+1. **Browse** and open a dataset. Three fictional sample datasets are always listed (tagged *Sample*).
+2. The **free quality check** shows the listing's latest signed report at once, after verifying its signature in the browser. Change the goal, or upload your own test CSV, to run it again.
+3. **Pay** from the purchase card. The payment is held in escrow and an answer pass is issued.
+4. **Ask** on the order page. A question matching fewer than 20 rows is blocked and does not use an answer.
+5. **Finish the order.** The service, not the buyer, decides the outcome from the signed appraisal the order was bought against: 95% split to contributors and a 5% fee, or a 100% refund with no fee.
+6. **How it works** (header, or *Guide* on a phone) opens the four-slide guide. It no longer opens by itself.
+
+### What is simulated in this preview
+
+- **Payments.** `web/src/lib/intents.ts` asks the 1Click API for a dry-run quote and falls back to a locally derived quote. No wallet signs anything and no funds move; payment and settlement hashes are derived locally and will not resolve on a block explorer.
+- **Escrow and tokens.** The escrow ledger, answer passes and settlements live in the TEE service's state, mirroring the contract in `/contract`. The web app does not call a deployed contract.
+- **Attestation.** The quote is signed by the service's own `ed25519` key (see the `// VERIFY:` section above); it is not a hardware quote.
+- **Sample privacy budgets** refill every hour because the data is fictional. Uploaded listings never refill.
+
+### Persistence on Vercel
+
+Serverless instances do not share memory or `/tmp`, so an uploaded listing or an open order can vanish between requests. Set `KV_REST_API_URL` and `KV_REST_API_TOKEN` (Vercel KV / Upstash Redis REST) and the service reads its state before each request and writes it after each change. Without them, only the three sample listings are stable. Set `SEED_DEMO_DATA=false` to start with no listings.
 
 ---
 
@@ -150,7 +160,7 @@ The frontend is designed as a single, intuitive 5-step Web2 product flow in a mo
 - **Operator Capabilities**:
   - View live counts and tables of all sealed listings, signed appraisals, funded/settled escrows, NEP-245 tokens, DP queries, settlements, and gasless accounts.
   - Manually trigger **Release** or **Refund** on any funded escrow.
-  - Click **Clear state** to wipe all in-memory/snapshot listings, escrows, queries, and settlements back to zero.
+  - Click **Clear state** to wipe orders, queries, settlements and uploaded listings. The sample listings are re-sealed.
 
 ---
 
@@ -224,9 +234,9 @@ Open `http://localhost:5173` for the public single-flow application, or `http://
 | `GET /listings` | Lists all published datasets (metadata, schema, scores, privacy budget — never raw rows). |
 | `POST /appraise` | Runs a private appraisal (`completeness`, `uniqueness`, `freshness`, holdout Logistic Regression lift, Monte Carlo Shapley weights) and returns a signed `AppraisalReport`. |
 | `POST /buy` | Records cross-chain NEAR Intents escrow funding and mints a scoped NEP-245 answer entitlement token. |
-| `POST /query` | Executes a Laplace-noised aggregate query (`AVG`, `SUM`, `COUNT`, `MIN`, `MAX`), enforcing $k \ge 20$ and $\varepsilon$ budget limits. |
-| `POST /settle` | Settles an escrow onchain: 5% fee + Monte Carlo Shapley contributor split if `deliveredWithinRange=true`, or 100% buyer refund if `false`. |
-| `GET /queries` | Returns the audit log of executed DP queries (`query_hash`, `result_hash`, `tee_sig`, $\varepsilon$ spent). |
+| `POST /query` | Requires a funded answer pass (`tokenId`). Executes a Laplace-noised aggregate query (`AVG`, `SUM`, `COUNT`, `MIN`, `MAX`), enforcing $k \ge 20$ and $\varepsilon$ budget limits. |
+| `POST /settle` | Settles an escrow. The service decides from the order's signed appraisal: 5% fee + Monte Carlo Shapley contributor split if quality met the guarantee, otherwise a 100% buyer refund. `deliveredWithinRange` is honoured only with an operator token. |
+| `GET /queries` | Returns the audit log of executed DP queries (`query_hash`, `result_hash`, `tee_sig`, $\varepsilon$ spent). Answer values are not republished. |
 | `GET /settlements` | Returns the audit log of completed escrow settlements and contributor payouts. |
 | `POST /admin/login` | Verifies the operator password against `process.env.ADMIN_PASSWORD` and issues a signed HMAC bearer token. |
 | `GET /admin/overview` | Returns full enclave telemetry for the `/admin` operator console (requires bearer token). |
