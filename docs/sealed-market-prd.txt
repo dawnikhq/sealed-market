@@ -1,0 +1,265 @@
+PRD: SEALED MARKET, PRIVATE DATA MARKET FOR HUMANS AND AGENTS
+
+Source page: https://cursor.com/canvas/store-d0191a84-7d74-4109-8f87-44db0dc2a23f/321d096a-565e-42ae-badc-396dd3ada720
+
+ONE LINE
+Sell answers, not datasets. A private AI appraiser running in a NEAR AI Cloud TEE grades the data before anyone pays. Buyers, human or agent, pay per attested answer from any chain, and every contributor gets a Shapley-based share. Drafted 31 Oct 2026 (Africa/Lagos, UTC+1). Anything marked ASSUMPTION is unverified.
+
+
+1. PROBLEM
+
+Buyers can't judge a dataset's value without seeing it, and once they've seen it they no longer need to buy it. This is Arrow's information paradox, as framed by Li, Yang, Jia and Pang (2025). The authors of a survey of 75 data marketplaces report that sellers mostly offer only "a description of their datasets, a price, sometimes an outdated sample" (Azcoitia, Laoutaris et al., arXiv 2012.08874). Sellers also fear copying, and people who contribute personal data get very little: Vana says typical payouts are "roughly a few dollars" (Axios, 2025-09-22). Agents that need data (Agent Economy track) have no way to check quality before they spend.
+
+
+2. USERS
+
+- Human seller (individual or data collective)
+  Need: Earn from data without handing over a copy; see who queried and why.
+- Human buyer (analyst, researcher, startup)
+  Need: Know the data is worth the price before paying; get the answer or model metric, not liability for raw data.
+- Agent buyer
+  Need: Decide automatically from a signed score, stay within a spend cap, pay from any chain.
+- Agent seller
+  Need: List derived data or a query endpoint and get paid per call.
+
+
+3. DIFFERENTIATION BACKED BY RESEARCH
+
+DIFFERENTIATORS
+
+- 1. Private AI Appraiser (headline)
+  Papers opened: Azcoitia, Laoutaris et al., 'Try Before You Buy', 2020, https://arxiv.org/abs/2012.08874; Li, Yang, Jia, Pang, 'Data Valuation and Selection in a Federated Model Marketplace', 2025, https://arxiv.org/abs/2509.18104; Su et al., 'BDTF: blockchain data trading with TEE', 2020, https://arxiv.org/abs/2007.06813
+  Insight and mechanism: TBYB: knowing a buyer's model accuracy on each individual dataset (O(N) information) gets close to optimal purchasing. So the appraiser runs the buyer's task on each dataset inside the TEE and releases only scores. BDTF shows a TEE can serve as the fair exchange; we add attestation the buyer can check plus NEAR escrow.
+
+- 2. Pay per answer, metered privacy
+  Papers opened: Koutris, Upadhyaya, Balazinska, Howe, Suciu, 'Query-Based Data Pricing', PODS 2012 / JACM 2015, https://doi.org/10.1145/2770870; Koutris et al., 'Toward practical query pricing with QueryMarket', SIGMOD 2013, https://dl.acm.org/doi/pdf/10.1145/2463676.2465335; Ghosh and Roth, 'Selling Privacy at Auction', 2010, https://arxiv.org/abs/1011.1375
+  Insight and mechanism: Sellers price a few views; any query's price is derived so that it is arbitrage-free, and query history prevents double charging. Ghosh and Roth treat privacy loss (differential privacy epsilon) as the thing being sold, so each answer spends a per-seller privacy budget that the seller prices and caps.
+
+- 3. Contributor Shapley split
+  Papers opened: Ghorbani and Zou, 'Data Shapley', 2019, https://arxiv.org/abs/1904.02868; Jia et al., 'Towards Efficient Data Valuation Based on the Shapley Value', 2019, https://arxiv.org/abs/1902.10275; 'Private Data Valuation and Fair Payment in Data Marketplaces', 2022, https://arxiv.org/abs/2210.08723; Vincent et al., 'Data Leverage', 2020, https://arxiv.org/abs/2012.09995
+  Insight and mechanism: Shapley is the fair credit rule for pooled data. 2210.08723 does it privately with MPC; we do it in a TEE (simpler, but weaker trust). Revenue flows to each contributor's named account, which gives a data collective the 'leverage' Vincent et al. describe.
+
+- Agent-native buying (supporting)
+  Papers opened: Tomasev, Franklin, Leibo, Jacobs et al., 'Virtual Agent Economies', 2025, https://arxiv.org/abs/2509.10147
+  Insight and mechanism: Agent markets need mechanisms built in on purpose. Ours are spend caps via function-call keys and auto-buy rules on attested scores.
+
+- Appraiser limits
+  Papers opened: Zheng et al., 'Judging LLM-as-a-Judge', 2023, https://arxiv.org/abs/2306.05685; Koh and Liang, 'Influence Functions', 2017, https://arxiv.org/abs/1703.04730
+  Insight and mechanism: LLM judges show position, verbosity and self-enhancement biases. So numeric scores come from measured task metrics (accuracy delta, duplicates, freshness); the LLM only writes the explanation. Influence functions are a cheaper per-row marginal-value estimate for later.
+
+EXISTING PLAYERS
+
+- market.near.ai (NEAR AI Agent Market)
+  Traction (opened): About 1.4K agents, 3.8K jobs, $24.9K cumulative volume as of May 2026 (gigs.sh, citing NEAR AI); 197 delivered jobs in a later snapshot (thecolony.ai)
+  Why it falls short: Hires agents for jobs; no data custody, appraisal or compute-to-data
+  How Sealed Market differs: Complementary: data products could be offered to Agent Market buyers. Not a clone.
+
+- Ocean Protocol
+  Traction (opened): traction not checked
+  Why it falls short: Compute-to-Data runs on the owner's premises with algorithms the owner approves (whitepaper); no attested pre-purchase appraisal
+  How Sealed Market differs: Attested TEE appraisal before purchase; NEAR named accounts; gasless onboarding
+
+- Vana
+  Traction (opened): Over 1M contributors; payouts 'roughly a few dollars' (Axios 2025-09-22)
+  Why it falls short: Prices pools for AI training; per-user value is small
+  How Sealed Market differs: Pay per answer to any buyer; Shapley split
+
+- AWS Data Exchange
+  Traction (opened): 3,500+ products from 300+ providers (aws.amazon.com)
+  Why it falls short: Raw files or API delivery; buyer gets a copy; AWS-only billing
+  How Sealed Market differs: Buyer never gets raw rows; any-chain payment
+
+- Reddit-style licensing deals
+  Traction (opened): Google deal about $60M a year (Reuters, 2024-02-22)
+  Why it falls short: Only platforms get paid, not the users who wrote the posts
+  How Sealed Market differs: Contributors are paid directly
+
+- x402 services / agentic.market
+  Traction (opened): 165M+ transactions, about $50M+ volume, 480K+ agents (Coinbase)
+  Why it falls short: Payment rail only; no quality signal or privacy
+  How Sealed Market differs: Adds the appraiser and the TEE; x402 could be a later payment path
+
+
+4. GOALS AND NON-GOALS
+
+1. Goal: a buyer, human or agent, sees an attested appraisal before paying and receives only answers.
+2. Goal: the seller's raw data never leaves the TEE, and every query is logged onchain.
+3. Goal: a gas-free human seller signs up in under 2 minutes.
+4. Non-goal (MVP): regulated personal data (health, KYC), MPC, full differential-privacy proofs, legal licensing templates.
+5. Non-goal: hiring agents for jobs (that's market.near.ai).
+
+
+5. USER STORIES
+
+1. As a seller, I upload a CSV and set a price per answer and a privacy budget, and I never share the file.
+2. As a buyer, I state my task ('predict churn' or 'average price by city') and get an attested appraisal score before I pay.
+3. As an agent buyer, I auto-buy when score >= 0.7 and price <= my cap, using a function-call key that can't overspend.
+4. As a contributor to a pooled dataset, I receive my Shapley share automatically.
+5. As a buyer, I get a refund from escrow if the delivered answer's measured quality falls below the appraised range.
+
+
+6. CORE FLOWS
+
+Step 1 - List: The seller signs in with email and gets a named account through meta-tx. They encrypt the data to the TEE's attested key, so the client checks the attestation before upload. They set views, a price per view and an epsilon budget. The contract records a listing token (NEP-245 class).
+
+Step 2 - Appraise (free or cheap): The buyer submits a task spec. The appraiser in the TEE computes quality (nulls, duplicates, freshness, schema fit, a synthetic-data heuristic), task utility (holdout metric with and without the data, the TBYB individual score) and a fair price range. It returns a report signed by the TEE key plus the attestation. Raw rows are never returned.
+
+Step 3 - Buy: The buyer pays from any chain through intents/1Click into escrow. An agent buyer uses a function-call key that has an allowance. The buyer receives a NEP-245 access token for N answers.
+
+Step 4 - Answer: The query runs in the TEE with a DP-noised aggregate or a model metric. The privacy budget is decremented and the query hash is logged onchain.
+
+Step 5 - Settle: If the delivered quality is within the appraised range, escrow pays out, split among contributors by TEE-computed Shapley shares. Otherwise the buyer is refunded.
+
+
+7. FUNCTIONAL REQUIREMENTS
+
+1. FR1: Attestation is verified client-side with a fresh nonce before any upload or query, and a 'Verified' panel is shown.
+2. FR2: The appraisal report includes a score in [0,1], sub-scores, a price range, the dataset hash, a task hash, the TEE signature and the attestation quote.
+3. FR3: Only aggregates or metrics leave the TEE; queries are rejected when k < 20 rows (ASSUMPTION threshold) or the budget is exhausted.
+4. FR4: The escrow contract releases or refunds based on a TEE-signed delivery-quality claim.
+5. FR5: Revenue splits go to contributor named accounts by Shapley weight (Monte Carlo permutation sampling, per Ghorbani and Zou).
+6. FR6: Agent API: an HTTP plus SKILL.md, and auto-buy rules evaluated on signed reports.
+
+
+8. NEAR ARCHITECTURE
+
+- Appraiser and query engine
+  NEAR primitive: NEAR AI Cloud TEE plus attestation
+  Why essential: Seller data stays sealed; the buyer can check the code that graded it
+- market.sealed.near contract
+  NEAR primitive: Listings, escrow, access tokens (NEP-245), query log
+  Why essential: Public, neutral record of every sale and query
+- Payments
+  NEAR primitive: Intents / 1Click
+  Why essential: The buyer pays in any token or chain; the seller receives USDC
+- Accounts
+  NEAR primitive: Named accounts plus meta-tx; sub-accounts per dataset (ds1.alice.near)
+  Why essential: Humans pay no gas; each dataset has its own revenue account
+- Agent access
+  NEAR primitive: Function-call keys limited to buy/query with an allowance
+  Why essential: Agents spend within a cap the owner sets
+- TEE identity
+  NEAR primitive: TEE public key registered in the contract (ASSUMPTION: verified from attestation off-chain by a relayer in MVP)
+  Why essential: Lets the contract trust signed reports
+
+
+9. DATA MODEL
+
+- Listing: id, seller_account, dataset_hash, schema, views[{name, price_usdc}], epsilon_budget, epsilon_spent, contributors[{account, rows}]
+- Appraisal: listing_id, task_hash, score, subscores{quality, freshness, dup_rate, synthetic_flag, utility_delta}, price_low, price_high, tee_sig, attestation_ref
+- AccessToken (NEP-245): listing_id, buyer, answers_left, expiry
+- QueryLog: token_id, query_hash, epsilon_used, result_hash, ts
+- Escrow: amount, buyer, listing_id, appraisal_id, status
+
+
+10. PRICING AND REVENUE SPLIT
+
+The seller sets prices on views. The appraiser suggests a fair range: price_high = the seller's price; price_low scales with utility_delta (ASSUMPTION: linear for the MVP). The query price follows Koutris-style view pricing, simplified to a per-view charge with history-based de-duplication. Fees: 5% platform fee (ASSUMPTION, modelled on the 5% fee reported for market.near.ai). The remainder is split by Shapley weight across contributors. If the delivered quality is below price_low, the buyer is refunded.
+
+
+11. PRIVACY MODEL AND ATTESTATION FLOW
+
+1. The client fetches the attestation with a nonce, verifies the measurement, and gets the enclave's public key.
+2. The seller encrypts the data to that key; decryption happens only in the TEE. Assumption: the data is held encrypted at rest outside the TEE.
+3. Outputs: aggregates with Laplace noise (epsilon per query), model metrics, and appraisal scores. No row-level output.
+4. Limits, stated plainly: TEE side-channel and vendor trust; repeated aggregates can leak, which is why the epsilon budget exists; an appraiser can be gamed by sellers who tune data to the scorer, which is mitigated by buyer-supplied holdouts and hidden task specs.
+
+
+12. MVP SCOPE VS LATER
+
+- MVP (14 days): CSV datasets; 3 sample fictional datasets
+  Later: Parquet, APIs, live feeds
+- MVP (14 days): Appraiser: quality checks plus a holdout logistic-regression utility delta plus LLM-written explanation
+  Later: Influence functions, synthetic-data detectors, multi-dataset TBYB bundles
+- MVP (14 days): Aggregate queries with Laplace noise; per-listing epsilon
+  Later: SQL-subset Koutris pricing, MPC option
+- MVP (14 days): Escrow plus refund on quality miss; Shapley over up to 5 contributors
+  Later: Large pools, data DAOs
+- MVP (14 days): Intents payment in testnet USDC (or a small mainnet amount)
+  Later: x402 and Agent Market listing
+- MVP (14 days): One demo agent buyer script
+  Later: Agent sellers
+
+
+13. 14-DAY PLAN (1 TO 14 NOV 2026)
+
+- Day 1: Day-1 checks (below); scaffold the repo; testnet accounts.
+- Day 2: Attestation verify plus encrypt-to-TEE upload path.
+- Day 3: Appraiser v1: quality sub-scores.
+- Day 4: Appraiser v2: task utility delta on the buyer holdout; signed report.
+- Day 5: Contract: listings, appraisals, NEP-245 access tokens.
+- Day 6: Escrow plus refund rule; query log.
+- Day 7: Intents/1Click payment into escrow.
+- Day 8: DP aggregate queries plus epsilon budget.
+- Day 9: Shapley split (Monte Carlo) plus payouts to sub-accounts.
+- Day 10: Seller UI with email login, meta-tx and the Verified panel.
+- Day 11: Agent buyer: function-call key plus an auto-buy rule on the score.
+- Day 12: Fictional datasets; end-to-end run; hosting.
+- Day 13: README 'do X, see Y'; video; disclose prior work.
+- Day 14: Submit before 23:59 UTC (00:59 on 15 Nov, Africa/Lagos time). Posting on X is a separate decision.
+
+
+14. 2-MINUTE DEMO (HUMAN SELLER, AGENT BUYER)
+
+1. 0:00 Problem: 'You can't price data without seeing it' (Arrow).
+2. 0:15 Maya, a human seller, logs in with email and gets maya.sealed.near with no gas. The Verified panel checks the TEE, and she uploads a fictional bike-rental CSV encrypted to the enclave.
+3. 0:40 A buyer agent states its task ('forecast weekend demand') and the appraiser returns score 0.82, 3% duplicates, fresh to Oct 2026, a fair range of 3 to 5 USDC, signed and attested.
+4. 1:00 The agent's rule (score >= 0.7, cap 5 USDC) fires. It pays through intents from another chain into escrow using its capped function-call key.
+5. 1:20 The agent queries and gets noised aggregates plus a model metric. The epsilon meter drops; no rows are shown.
+6. 1:40 Delivery quality is within range, so escrow pays Maya and her 2 co-contributors by Shapley share. Then a low-quality listing is shown triggering a refund.
+
+
+15. README PROMISES (FOR THE AI SCREENER)
+
+1. Run "npm run seed", open /sell, and see 3 fictional listings with a Verified TEE badge.
+2. POST /appraise with tasks/demand.json and see a JSON report with a score, price range, tee_sig and attestation.
+3. Run "node agent/buyer.js" and see it auto-buy, query, and print a result with epsilon remaining.
+4. Open the explorer link printed and see the escrow release split across contributor accounts.
+5. Run "node agent/buyer.js --listing bad" and see the refund.
+
+
+16. SUCCESS METRICS
+
+Hackathon: the full loop on testnet or mainnet in the demo, with attestation verified live, and an agent purchase with no human clicks. Post-hackathon (ASSUMPTION targets): 20 listings, 100 paid answers, and refund rate under 10% in the first month.
+
+
+17. RISKS AND OPEN QUESTIONS
+
+1. Cold start and data supply: no sellers means no market. Mitigation: seed with open datasets as 'free appraisal' listings; target one niche first (e.g. local-commerce or research survey data). This is open.
+2. Appraiser manipulation: sellers overfit to known checks. Mitigation: buyer-supplied hidden holdout; versioned appraiser code hash in the attestation.
+3. LLM judge errors and bias (Zheng et al. 2023): numeric scores come from metrics; the LLM only explains.
+4. Unverified NEAR capabilities: whether NEAR AI Cloud runs arbitrary Python or data jobs in the TEE versus only model inference (if only inference, use Outlayer or a TEE we deploy; check day 1). Whether the contract can verify attestation onchain.
+5. Legal: data licensing and personal-data law. The MVP uses only fictional or open data.
+6. Competition: generic data marketplaces from other teams. Our edge is the attested appraiser plus pay-per-answer plus Shapley; say so in the first 15 seconds.
+
+
+18. DAY-1 CHECKS
+
+1. NEAR AI Cloud: can it run custom code (pandas, sklearn) inside the TEE, or only chat completions? If only completions, can Outlayer host the job?
+2. Attestation: fetch the report with a nonce and verify it in the browser.
+3. 1Click quote for paying testnet or small mainnet USDC into a contract.
+4. Meta-tx relayer for named-account creation.
+5. The market.near.ai API: whether a data product could be posted there (the agents prompt points to market.near.ai/jobs).
+
+
+19. REFERENCES (ALL OPENED 31 OCT 2026)
+
+1. Azcoitia, S. A., Laoutaris, N. et al. (2020). Try Before You Buy. https://arxiv.org/abs/2012.08874
+2. Azcoitia, S. A., Laoutaris, N. (2022). A Survey of Data Marketplaces and Their Business Models. https://arxiv.org/abs/2201.04561
+3. Li, W., Yang, Y., Jia, R., Pang, Y. (2025). Data Valuation and Selection in a Federated Model Marketplace. https://arxiv.org/abs/2509.18104
+4. Su, G., Yang, W., Luo, Z., Zhang, Y., Bai, Z. et al. (2020). BDTF. https://arxiv.org/abs/2007.06813
+5. Koutris, P., Upadhyaya, P., Balazinska, M., Howe, B., Suciu, D. (2012/2015). Query-Based Data Pricing. https://doi.org/10.1145/2770870
+6. Koutris, P. et al. (2013). Toward practical query pricing with QueryMarket. https://dl.acm.org/doi/pdf/10.1145/2463676.2465335
+7. Ghosh, A., Roth, A. (2010). Selling Privacy at Auction. https://arxiv.org/abs/1011.1375
+8. Ghorbani, A., Zou, J. (2019). Data Shapley. https://arxiv.org/abs/1904.02868
+9. Jia, R., Dao, D., Wang, B., Hubis, F. A. et al. (2019). Towards Efficient Data Valuation Based on the Shapley Value. https://arxiv.org/abs/1902.10275
+10. Private Data Valuation and Fair Payment in Data Marketplaces (2022). https://arxiv.org/abs/2210.08723 (abstract read; authors not recorded)
+11. Vincent, N., Li, H., Tilly, N., Chancellor, S. et al. (2020). Data Leverage. https://arxiv.org/abs/2012.09995
+12. Tomasev, N., Franklin, M., Leibo, J. Z., Jacobs, J. et al. (2025). Virtual Agent Economies. https://arxiv.org/abs/2509.10147
+13. Zheng, L., Chiang, W.-L., Sheng, Y., Zhuang, S. et al. (2023). Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena. https://arxiv.org/abs/2306.05685
+14. Koh, P. W., Liang, P. (2017). Understanding Black-box Predictions via Influence Functions. https://arxiv.org/abs/1703.04730
+
+TRACK TEXTS (HACKATHON.md)
+agents: "Build agents that earn, spend, negotiate, hire other agents and pay for APIs, compute or data — with crypto directly or through NEAR Intents."
+privacy: "Explore confidential computation, private finance and AI that protects sensitive data. Build intelligence without exposure."
+Overlap check: this differs from the agents example (a general contractor agent that hires agents and pays for data, since we are the data supply side), the business example (one-agent research shop), and the privacy example (private expense auditor).

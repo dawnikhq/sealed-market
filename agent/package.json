@@ -1,0 +1,21 @@
+{
+  "name": "@sealed-market/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Autonomous Agent Buyer for Sealed Market using a NEAR Function-Call Access Key with spend allowance and method restriction",
+  "scripts": {
+    "start": "tsx src/buyer.ts",
+    "buy:bad": "tsx src/buyer.ts --listing ds_bad",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@noble/ed25519": "2.1.0",
+    "near-api-js": "5.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "tsx": "4.19.2",
+    "typescript": "5.7.2"
+  }
+}

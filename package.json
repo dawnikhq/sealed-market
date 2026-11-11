@@ -1,0 +1,30 @@
+{
+  "name": "sealed-market-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Sealed Market — Private Data Marketplace on NEAR with Attested TEE Appraiser, NEP-245 Multi-Token Entitlements, Differential Privacy, and Monte Carlo Shapley Settlements",
+  "scripts": {
+    "seed": "npm --prefix tee run seed",
+    "test:contract": "cargo test --manifest-path contract/Cargo.toml",
+    "build:contract": "cargo build --manifest-path contract/Cargo.toml --target wasm32-unknown-unknown --release",
+    "test:tee": "npm --prefix tee test",
+    "start:tee": "npm --prefix tee start",
+    "dev:web": "npm --prefix web run dev",
+    "build:web": "npm --prefix web run build",
+    "build": "npm --prefix web run build",
+    "agent": "node agent/buyer.js",
+    "agent:bad": "node agent/buyer.js --listing bad"
+  },
+  "dependencies": {
+    "@noble/ed25519": "2.1.0",
+    "cors": "2.8.5",
+    "express": "4.21.2"
+  },
+  "devDependencies": {
+    "@types/cors": "2.8.17",
+    "@types/express": "5.0.0",
+    "@types/node": "22.10.2",
+    "typescript": "5.7.2"
+  }
+}

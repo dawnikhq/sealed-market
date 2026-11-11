@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-black font-sans text-white antialiased;
+    font-feature-settings: 'ss01', 'cv11';
+  }
+  ::selection {
+    background: #ffffff;
+    color: #000000;
+  }
+  input[type='range'] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+  }
+  input[type='range']::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 999px;
+    background: #262626;
+  }
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 18px;
+    width: 18px;
+    margin-top: -7px;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.08);
+    transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  input[type='range']::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+  input[type='range']::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: #262626;
+  }
+  input[type='range']::-moz-range-thumb {
+    height: 18px;
+    width: 18px;
+    border: none;
+    border-radius: 999px;
+    background: #fff;
+  }
+  select {
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.9rem center;
+    padding-right: 2.25rem !important;
+  }
+  select option {
+    background: #0b0b0b;
+    color: #fff;
+  }
+}
+
+@layer components {
+  .surface {
+    @apply rounded-4xl border border-white/10 bg-white/[0.025] backdrop-blur-sm;
+  }
+  .surface-raised {
+    @apply rounded-3xl border border-white/10 bg-white/[0.04];
+  }
+  .field {
+    @apply w-full rounded-2xl border border-white/10 bg-black/60 px-4 py-3 text-sm text-white placeholder:text-ink-500 outline-none transition duration-300 ease-soft focus:border-white/50 focus:bg-black;
+  }
+  .label {
+    @apply mb-2 block text-[11px] font-medium uppercase tracking-[0.14em] text-ink-400;
+  }
+  .eyebrow {
+    @apply font-mono text-[11px] uppercase tracking-[0.2em] text-ink-400;
+  }
+  .hairline {
+    @apply border-white/10;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Grain + soft vignette backdrop */
+.backdrop-grain::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.shimmer-text {
+  background: linear-gradient(90deg, #6b6b6b 0%, #ffffff 50%, #6b6b6b 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 2.4s linear infinite;
+}
+
+/* Scroll-reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Subtle scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #000;
+}
+::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a3a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

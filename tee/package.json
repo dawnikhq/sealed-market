@@ -1,0 +1,27 @@
+{
+  "name": "@sealed-market/tee",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone TEE-deployable Appraiser & Differential Privacy Query Engine for Sealed Market",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "build": "tsc",
+    "test": "tsx src/self-test.ts",
+    "seed": "tsx src/seed.ts"
+  },
+  "dependencies": {
+    "@noble/ed25519": "2.1.0",
+    "cors": "2.8.5",
+    "express": "4.21.2",
+    "near-api-js": "5.0.1"
+  },
+  "devDependencies": {
+    "@types/cors": "2.8.17",
+    "@types/express": "5.0.0",
+    "@types/node": "22.10.2",
+    "tsx": "4.19.2",
+    "typescript": "5.7.2"
+  }
+}
