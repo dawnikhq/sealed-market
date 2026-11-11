@@ -1,4 +1,4 @@
-# Sealed Market — Attested Private Data Marketplace on NEAR
+# Sealed Market Attested Private Data Marketplace on NEAR
 
 > **Sell answers, not raw spreadsheets.**
 > A private AI appraiser scores datasets inside a Trusted Execution Environment (TEE) and releases only a signed quality report. Buyers (human or autonomous agent) test quality for free, pay per answer from any chain via **NEAR Intents (1Click)**, ask **Differentially-Private** aggregate questions, and settle automatically by a **Monte Carlo Shapley split** from onchain escrow (`market.sealed.near`) — or receive an automatic **100% refund** if data quality falls short.
