@@ -102,6 +102,7 @@ sealed-market/
 | Capability | Where It Runs | How It Works in the Real App |
 | :--- | :--- | :--- |
 | **Interactive First-Time User Guide** | `web/src/flow/OnboardingModal.tsx` | Automatically opens on first visit (`localStorage`) with a 4-step walkthrough for sellers & buyers; re-openable anytime via **How it works** in the top bar. |
+| **NEAR Wallet & Instant Gasless Auth** | `web/src/lib/api.ts` + `POST /relayer/create-account` | Click **Connect Wallet** in the header to sign in via **MyNearWallet** (`@near-wallet-selector/my-near-wallet` on Testnet or Mainnet), generate a 1-click **Instant Gasless NEAR Wallet** (`ed25519` keypair + `*.sealed.near` account via NEP-366 meta-tx relayer), or enter an existing `.near`/`.testnet` account. |
 | **Client-Side Remote Attestation** | `web/src/lib/crypto.ts` + `tee/attestation.ts` | Generates a fresh 16-byte cryptographic nonce in the browser, binds `sha256(nonce)` and `enclavePubKey` into `report_data[0..64]`, and verifies the 64-byte `ed25519` quote signature client-side. |
 | **Gasless Seller Account Creation** | `POST /relayer/create-account` | Provisions a `*.sealed.near` account and dataset revenue subaccount from the seller's email via a gasless NEP-366 meta-transaction relayer receipt. |
 | **Browser `AES-256-GCM` CSV Encryption** | `web/src/lib/crypto.ts` + `tee/src/crypto.ts` | Encrypts the seller's uploaded `.csv` file in the browser using WebCrypto `AES-256-GCM` (`128-bit` auth tag) keyed to the enclave's attested public key before upload. |
