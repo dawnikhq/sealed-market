@@ -1,0 +1,10 @@
+node_modules
+**/node_modules
+contracts/sealed-market/target
+**/target
+web/dist
+tee/dist
+.git
+.env
+.env.*
+*.log

@@ -9,3 +9,5 @@ contract/target/
 .env.*
 *.log
 *:Zone.Identifier
+.vercel
+.env*
