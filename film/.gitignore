@@ -3,5 +3,6 @@ snapshots/
 scaffold/
 .hyperframes/
 audio/*.wav
-renders/draft*.mp4
+renders/*
+!renders/sealed-market-launch-web.mp4
 package-lock.json

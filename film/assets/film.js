@@ -206,7 +206,7 @@
   place('#vaultShadow', VAULT.x + 150, VAULT.y + 250, { opacity: 0 });
   place('#vaultHalo', VAULT.x + 20, VAULT.y - 40, { opacity: 0 });
   place('#vault', VAULT.x, VAULT.y + 60, { opacity: 0, scale: 0.94 });
-  gsap.set(['#vmRing', '#vmArcs'], { strokeDasharray: '1.06 1.06', strokeDashoffset: 1.06 });
+  gsap.set(['#vmRing', '#vmArcs'], { strokeDasharray: '1.06 1.06', strokeDashoffset: 1.06, opacity: 0 });
   gsap.set('#vmDot', { scale: 0, transformOrigin: '50% 50%' });
 
   place('#dish', DISH.x, DISH.y, { opacity: 0, scale: 0.8 });
@@ -222,7 +222,7 @@
   place('#answer', -420, -70, { opacity: 0 });
   place('#ring', SLIT.x, SLIT.y, { opacity: 0 });
   place('#ring38', SLIT.x, SLIT.y, { opacity: 0 });
-  place('#pill38', -420, 80, { opacity: 0 });
+  place('#pill38', -420, 120, { opacity: 0 });
   gsap.set(['#ringArc', '#ring38Arc'], { strokeDasharray: '0 1' });
 
   const SELL = { x: -930, y: 40 };
@@ -231,16 +231,18 @@
   place('#slabQC', QC.x, QC.y, { opacity: 0, scale: 0.96, transformPerspective: 2400 });
   gsap.set(['#qcPill', '#qcK', '#qcPrice', '#qcC1', '#qcC2'], { opacity: 0, y: 14 });
   gsap.set('#qcMeasure', { opacity: 0, y: 40 });
+  gsap.set('.qc-ring', { opacity: 0 });
   const PAY = { x: 1010, y: 20 };
   place('#slabPay', PAY.x + 500, PAY.y, { opacity: 0, transformPerspective: 2400, rotationY: -34 });
   const BOTP = { x: -430, y: -1500 };
   place('#slabBot', BOTP.x, BOTP.y, { opacity: 0, transformPerspective: 2400, rotationY: 20 });
-  const END = { z: 0.34, markY: -530 };
-  place('#endMark', 0, END.markY, { scale: 3.1 });
-  gsap.set(['#emRing', '#emArc1', '#emArc2'], { strokeDasharray: '1.06 1.06', strokeDashoffset: 1.06 });
+  const END = { z: 0.7, markY: -257 };
+  place('#endMark', 0, END.markY, { scale: 1.5 });
+  gsap.set(['#emRing', '#emArc1', '#emArc2'], { strokeDasharray: '1.06 1.06', strokeDashoffset: 1.06, opacity: 0 });
   gsap.set('#emDot', { scale: 0, transformOrigin: '50% 50%' });
 
   gsap.set('#inSheet', { top: 372, height: 600 });
+  gsap.set('#inScan', { top: 372 });
   gsap.set('#fade', { opacity: 1 });
 
   /* Where the quality ring sits on the QC slab, for the match cut. */
@@ -437,6 +439,7 @@
   tl.to('#vault', { scaleY: 0.975, transformOrigin: '50% 100%', duration: 0.07, ease: 'power2.out' }, 13.85).to('#vault', { scaleY: 1, duration: 0.5, ease: 'elastic.out(1.2, 0.4)' }, 13.92);
   shake(13.85, 11);
   // The seal: ring, arcs, dot. Music lifts on the dot.
+  tl.set('#vmRing', { opacity: 1 }, 13.98).set('#vmArcs', { opacity: 1 }, 14.16);
   tl.to('#vmRing', { strokeDashoffset: 0, duration: 0.42, ease: 'power2.inOut' }, 13.98).to('#vmArcs', { strokeDashoffset: 0, duration: 0.3, ease: 'power2.out' }, 14.16);
   tl.to('#vmDot', { scale: 1, duration: 0.5, ease: 'back.out(4)' }, 14.4);
   slitPulse(14.4, 1.4);
@@ -507,11 +510,11 @@
   /* ── Transition 5 · match cut: the ring becomes the ring on the product's quality report ── */
   camTo({ x: -1420, y: 40, z: 1.05 }, 29.4, 0.9, 'power3.inOut');
   tl.to('#ring', { x: QC_RING.x, y: QC_RING.y, scale: QC_RING.s, duration: 0.9, ease: 'power3.inOut' }, 29.4);
-  tl.to('#slabQC', { opacity: 1, scale: 1, duration: 0.45, ease: 'power2.out' }, 29.95);
-  tl.to('#ringArc', { stroke: '#111111', duration: 0.3 }, 30.0).to('#ringTrack', { stroke: 'rgba(17,17,17,0.1)', duration: 0.3 }, 30.0)
-    .to('#ringNum', { color: '#111111', duration: 0.3 }, 30.0).to('#ringLbl', { color: '#707070', duration: 0.3 }, 30.0)
-    .to('#ring svg', { filter: 'drop-shadow(0 0 0px rgba(255,255,255,0))', duration: 0.3 }, 30.0);
-  tl.set('#ring', { opacity: 0 }, 30.42);
+  tl.to('#slabQC', { opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out' }, 30.1);
+  // The ring is drawn with a difference blend, so it reads white on the dark table and
+  // black on the white report without ever passing through an invisible mid-grey.
+  tl.to('#ring svg', { filter: 'drop-shadow(0 0 0px rgba(255,255,255,0))', duration: 0.25 }, 29.85);
+  tl.set('.qc-ring', { opacity: 1 }, 30.5).set('#ring', { opacity: 0 }, 30.5);
 
   /* ════════ SHOT 6 · 30.3 – 37.2 · Know before you pay. ════════ */
   tl.to(['#qcPill', '#qcK', '#qcPrice'], { opacity: 1, y: 0, duration: 0.55, stagger: 0.14, ease: 'back.out(1.6)' }, 30.5);
@@ -524,15 +527,21 @@
   say('#t6a', 30.9, 35.0);
 
   /* ── Transition 6 · the score becomes a coin, and the camera follows it into escrow ── */
-  tl.set('#ring', { opacity: 1 }, 36.18);
+  tl.set('#ring', { opacity: 1 }, 36.18).set('.qc-ring', { opacity: 0 }, 36.18);
   tl.to('#slabQC', { opacity: 0, scale: 0.97, duration: 0.4, ease: 'power2.in' }, 36.2);
-  tl.to('#ringArc', { stroke: '#ffffff', strokeDasharray: '1 1', duration: 0.3 }, 36.2).to('#ringNum', { color: '#ffffff', opacity: 0, duration: 0.25 }, 36.2).to('#ringLbl', { opacity: 0, duration: 0.2 }, 36.2);
+  tl.to('#ringArc', { strokeDasharray: '1 1', duration: 0.3 }, 36.2).to('#ringNum', { opacity: 0, duration: 0.25 }, 36.2).to('#ringLbl', { opacity: 0, duration: 0.2 }, 36.2);
   tl.to('#ring', { scale: 0.3, duration: 0.5, ease: 'back.in(1.8)' }, 36.25);
   tl.set('#coin', { x: QC_RING.x, y: QC_RING.y, opacity: 1, scale: 0.9 }, 36.72).set('#ring', { opacity: 0 }, 36.75);
   tl.to('#coin', { scale: 1, duration: 0.3, ease: 'back.out(3)' }, 36.72);
   camTo({ x: -420, y: 40, z: 1 }, 36.5, 1.0, 'power3.inOut');
   tl.to('#dish', { opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(1.6)' }, 36.6);
-  tl.to('#coin', { x: DISH.x, duration: 0.98, ease: 'power2.inOut' }, 36.82);
+  const follow = { p: 0 };
+  tl.to(follow, {
+    p: 1, duration: 0.74, ease: 'power2.inOut',
+    onUpdate: function () {
+      gsap.set('#coin', { x: cam.x + (QC_RING.x + 1400) + (420 - (QC_RING.x + 1400)) * follow.p });
+    },
+  }, 36.76);
   tl.to('#coin', { y: -330, duration: 0.5, ease: 'power2.out' }, 36.82).to('#coin', { y: DISH.y - 12, duration: 0.48, ease: 'power2.in' }, 37.32);
   tl.to(state, { coinBlur: 14, duration: 0.3, ease: 'power2.in' }, 37.45).to(state, { coinBlur: 0, duration: 0.05 }, 37.8);
   tl.set('#coin', { filter: 'url(#mbCoin)' }, 37.3).set('#coin', { filter: 'none' }, 37.86);
@@ -626,9 +635,9 @@
   tl.to('#dish', { rotation: -3, duration: 0.07 }, 51.0).to('#dish', { rotation: 0, duration: 1, ease: 'elastic.out(1.4, 0.25)' }, 51.07);
   shake(51.0, 5);
   slitPulse(51.15, 1.2);
-  tl.set('#ring38', { opacity: 1, scaleX: 0.7, scaleY: 0.02 }, 51.15).to('#ring38', { x: -420, y: -70, scaleX: 1, scaleY: 1, duration: 0.6, ease: 'back.out(1.6)' }, 51.15);
+  tl.set('#ring38', { opacity: 1, scaleX: 0.7, scaleY: 0.02 }, 51.15).to('#ring38', { x: -420, y: -90, scaleX: 1, scaleY: 1, duration: 0.6, ease: 'back.out(1.6)' }, 51.15);
   tl.to('#ring38Arc', { strokeDasharray: '0.38 1', duration: 0.7, ease: 'power2.out' }, 51.3);
-  tl.fromTo('#pill38', { opacity: 0, y: 96 }, { opacity: 1, y: 80, duration: 0.45, ease: 'back.out(1.8)' }, 51.55);
+  tl.fromTo('#pill38', { opacity: 0, y: 136 }, { opacity: 1, y: 120, duration: 0.45, ease: 'back.out(1.8)' }, 51.55);
   // The coin leaves the dish and goes back the way it came.
   tl.to('#coin2', { x: DISH.x + 26, duration: 0.2, ease: 'power2.out' }, 52.0)
     .to('#coin2', { x: -1700, y: DISH.y + 150, rotation: -30, duration: 0.72, ease: 'power3.in' }, 52.2);
@@ -660,14 +669,16 @@
   tl.to(['#dish', '#slip2'], { opacity: 0, duration: 0.3 }, 59.8);
 
   /* ════════ SHOT 10 · 60.6 – 70 · The vault becomes the mark. ════════ */
-  tl.to(state, { light: 0.8, duration: 1.5 }, 60.6);
-  tl.to('#vault', { y: END.markY + 110, duration: 1.0, ease: 'power3.inOut' }, 61.0).to(['#vaultShadow', '#vaultHalo'], { opacity: 0, duration: 0.6, ease: 'power2.in' }, 61.0);
+  tl.to('#slit i', { opacity: 0.9, duration: 0.5 }, 60.5);
+  tl.to('#vault', { scale: 1.04, duration: 0.4, ease: 'power2.out' }, 60.6);
+  tl.to('#vault', { y: END.markY + 80, scale: 0.8, duration: 1.0, ease: 'power3.inOut' }, 60.9).to(['#vaultShadow', '#vaultHalo'], { opacity: 0, duration: 0.6, ease: 'power2.in' }, 61.0);
   slitPulse(61.9, 0.6);
   tl.to('#vault', { scale: 0.1, y: END.markY, duration: 0.55, ease: 'back.in(1.5)' }, 62.0);
   tl.to('#vault', { opacity: 0, duration: 0.14 }, 62.42);
   tl.set('#endMark', { opacity: 1 }, 62.4);
   tl.to('#emDot', { scale: 1, duration: 0.5, ease: 'back.out(3.5)' }, 62.44);
-  tl.to('#emArc1', { strokeDashoffset: 0, duration: 0.45, ease: 'power2.out' }, 62.6).to('#emArc2', { strokeDashoffset: 0, duration: 0.45, ease: 'power2.out' }, 62.66);
+  tl.set('#emRing', { opacity: 1 }, 62.5).set('#emArc1', { opacity: 1 }, 62.6).set('#emArc2', { opacity: 1 }, 62.66);
+  tl.to('#emArc1', { strokeDashoffset: 0, duration: 0.4, ease: 'power2.out' }, 62.6).to('#emArc2', { strokeDashoffset: 0, duration: 0.34, ease: 'power2.out' }, 62.66);
   tl.to('#emRing', { strokeDashoffset: 0, duration: 0.55, ease: 'power2.inOut' }, 62.5);
   tl.fromTo('#endMark', { rotation: -30 }, { rotation: 0, duration: 1.3, ease: 'elastic.out(1, 0.5)' }, 62.5);
   shake(63.0, 14);
@@ -677,7 +688,7 @@
   tl.fromTo('#t10c', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.7 }, 65.1);
   tl.fromTo('#t10d', { opacity: 0 }, { opacity: 1, duration: 0.8 }, 65.7);
   // Nothing sits still: the mark breathes and the camera keeps easing in.
-  tl.to('#endMark', { scale: 3.22, duration: 6.4, ease: 'sine.inOut' }, 63.3);
+  tl.to('#endMark', { scale: 1.56, duration: 6.4, ease: 'sine.inOut' }, 63.3);
   camTo({ z: END.z * 1.035 }, 63.2, 6.6, 'none');
   tl.to('#type', { scale: 1.02, duration: 6.6, ease: 'none' }, 63.2);
   tl.to('#fade', { opacity: 1, duration: 0.8, ease: 'power2.in' }, 69.2);

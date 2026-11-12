@@ -88,6 +88,7 @@ sealed-market/
 │   ├── buyer.js              # CLI entrypoint (`node agent/buyer.js` and `node agent/buyer.js --listing bad`)
 │   ├── SKILL.md              # Agent capability specification
 │   └── src/buyer.ts          # Capped key creation, attestation verify, auto-buy rule, DP query, settle
+├── film/                     # Launch film: HyperFrames composition, soundtrack script, voiceover script
 ├── data/                     # CSV datasets for CLI self-tests & holdout evaluation
 │   ├── ds_bike_rentals.csv
 │   ├── ds_ecommerce_churn.csv
