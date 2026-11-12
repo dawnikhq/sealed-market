@@ -1,0 +1,12 @@
+{
+  "name": "sealed-market-film",
+  "private": true,
+  "type": "module",
+  "description": "Sealed Market launch film: HyperFrames composition (HTML/CSS/GSAP rendered to MP4, 1920x1080, 30 fps)",
+  "scripts": {
+    "audio": "python3 audio/make_audio.py",
+    "dev": "npx --yes hyperframes@0.9.34 preview",
+    "check": "npx --yes hyperframes@0.9.34 check",
+    "render": "npx --yes hyperframes@0.9.34 render --fps 30 --quality delivery --output renders/sealed-market-launch.mp4"
+  }
+}

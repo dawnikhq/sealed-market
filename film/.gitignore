@@ -1,0 +1,7 @@
+node_modules/
+snapshots/
+scaffold/
+.hyperframes/
+audio/*.wav
+renders/draft*.mp4
+package-lock.json

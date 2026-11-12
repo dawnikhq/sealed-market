@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Sealed Market launch film</title>
+    <script src="assets/gsap.min.js"></script>
+    <link rel="stylesheet" href="assets/film.css" />
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="70"
+      data-width="1920"
+      data-height="1080"
+      data-fps="30"
+    >
+      <!-- Music and designed sound effects (no voiceover). Built by audio/make_audio.py. -->
+      <audio id="mix" src="audio/mix.wav" data-start="0" data-duration="70" data-volume="1"></audio>
+
+      <div id="stage" class="clip" data-start="0" data-duration="70" data-track-index="0">
+        <!-- Background: key light from the upper left on a black table -->
+        <div id="bg" class="layer">
+          <div id="pool"></div>
+          <div id="pool2"></div>
+          <div id="seams"></div>
+        </div>
+
+        <!-- Dust floating in the key light, behind the objects so it never covers UI text -->
+        <div id="fg" class="layer"></div>
+
+        <!-- World: everything that sits on the table -->
+        <div id="mid" class="layer">
+          <!-- S1: paper copies and the original sheet -->
+          <div id="copies"></div>
+          <div id="sheet" class="paper obj"></div>
+
+          <!-- S2: the buyer's side -->
+          <div id="folder" class="obj">
+            <div class="folder-pages"></div>
+            <div class="folder-tab"></div>
+            <div class="folder-body">
+              <div class="folder-band"><i></i></div>
+              <div class="folder-label">DATASET</div>
+              <div class="folder-lines"></div>
+            </div>
+            <div class="folder-peek"></div>
+          </div>
+          <div id="tag" class="obj"><span>PAY FIRST</span></div>
+          <div id="coinA" class="coin obj"></div>
+
+          <!-- The vault -->
+          <div id="vaultHalo" class="obj"></div>
+          <div id="vaultShadow" class="obj"></div>
+          <div id="vault" class="obj">
+            <div class="v-right"></div>
+            <div class="v-top" id="vLid"><div class="v-slot"></div></div>
+            <div class="v-front">
+              <div class="v-sheen"></div>
+              <div class="v-sheen2"></div>
+              <div id="slit"><i></i></div>
+              <svg id="vMark" viewBox="0 0 32 32" fill="none">
+                <circle id="vmRing" cx="16" cy="16" r="15" stroke="#fff" stroke-width="1.1" pathLength="1" />
+                <path id="vmArcs" d="M9 18.5c2.2 2.6 4.6 3.9 7 3.9s4.8-1.3 7-3.9M9 13.5c2.2-2.6 4.6-3.9 7-3.9s4.8 1.3 7 3.9" stroke="#fff" stroke-width="1.1" stroke-linecap="round" pathLength="1" />
+                <circle id="vmDot" cx="16" cy="16" r="2.25" fill="#fff" />
+              </svg>
+            </div>
+            <div class="v-reflect"></div>
+          </div>
+          <div id="streaks"></div>
+
+          <!-- Escrow dish and coins -->
+          <div id="dish" class="obj"><div class="dish-in"></div><div class="dish-rim"></div></div>
+          <div id="escrowLabel" class="obj mono">$12.39 in escrow · 3 answers</div>
+          <div id="ripple" class="obj"></div>
+          <div id="coin" class="coin obj"></div>
+          <div id="coin2" class="coin obj"></div>
+          <div id="minis"></div>
+
+          <!-- Question slips and the answer -->
+          <div id="slip1" class="slip obj"><b>AVG</b> rentals_count</div>
+          <div id="slip2" class="slip obj"><b>AVG</b> where rows &lt; 20</div>
+          <div id="answer" class="obj">
+            <div class="answer-k">Average of rentals_count</div>
+            <div class="answer-v" id="answerV">0.00</div>
+            <div class="answer-s mono">95% range 238.7 – 283.6 · 120 rows</div>
+          </div>
+
+          <!-- The score ring that leaves the vault -->
+          <div id="ring" class="obj">
+            <svg viewBox="0 0 200 200">
+              <circle cx="100" cy="100" r="88" id="ringTrack" fill="none" stroke-width="11" />
+              <circle cx="100" cy="100" r="88" id="ringArc" fill="none" stroke-width="11" stroke-linecap="round" pathLength="1" transform="rotate(-90 100 100)" />
+            </svg>
+            <div id="ringNum" class="mono">0%</div>
+            <div id="ringLbl">QUALITY</div>
+          </div>
+          <div id="ring38" class="obj">
+            <svg viewBox="0 0 200 200">
+              <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="11" />
+              <circle cx="100" cy="100" r="88" id="ring38Arc" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" pathLength="1" transform="rotate(-90 100 100)" />
+            </svg>
+            <div class="mono r38n">38%</div>
+          </div>
+          <div id="pill38" class="obj">Below the quality guarantee</div>
+
+          <!-- Staged UI: the seller panel (step 2: upload and encrypt) -->
+          <div id="slabSell" class="slab obj">
+            <div class="ui-tabs">
+              <span class="ui-tab"><i>1</i> Your email</span><em></em>
+              <span class="ui-tab on"><i>2</i> Upload and encrypt</span><em></em>
+              <span class="ui-tab off"><i>3</i> Price and publish</span>
+            </div>
+            <div class="ui-table">
+              <div class="ui-table-head">
+                <span id="sellCaption">Preview on your device only. Nothing is uploaded yet</span>
+                <span class="mono">120 rows</span>
+              </div>
+              <div class="ui-grid mono" id="sellGrid"></div>
+            </div>
+            <div class="ui-btn" id="sellBtn"><svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg><span id="sellBtnT">Encrypt file in browser</span></div>
+          </div>
+
+          <!-- Staged UI: the free quality check verdict -->
+          <div id="slabQC" class="slab obj">
+            <div class="ui-card qc-verdict">
+              <div class="qc-ring">
+                <svg viewBox="0 0 200 200">
+                  <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(17,17,17,.1)" stroke-width="11" />
+                  <circle cx="100" cy="100" r="88" fill="none" stroke="#111" stroke-width="11" stroke-linecap="round" pathLength="1" stroke-dasharray="0.96 1" transform="rotate(-90 100 100)" />
+                </svg>
+                <div class="mono qc-num">96%</div>
+                <div class="qc-lbl">QUALITY</div>
+              </div>
+              <div class="qc-right">
+                <span class="ui-pill good" id="qcPill">Meets the quality guarantee</span>
+                <div class="qc-k" id="qcK">Fair price per answer</div>
+                <div class="qc-price" id="qcPrice">$3.76 – $4.50</div>
+              </div>
+              <div class="qc-checks">
+                <div class="qc-check" id="qcC1"><i></i>Report signed by the vault, checked in your browser</div>
+                <div class="qc-check" id="qcC2"><i></i>Looks like genuine data</div>
+              </div>
+            </div>
+            <div class="ui-card qc-measure" id="qcMeasure">
+              <div class="qc-stat">
+                <div class="qc-k">Prediction accuracy</div>
+                <div class="mono qc-acc"><span>43%</span> <em>→</em> <b id="qcAcc">43%</b></div>
+                <div class="qc-s">Without vs. with this data</div>
+              </div>
+              <div class="qc-bars">
+                <div class="qc-bar"><div><span>Complete data</span><span class="mono">100% filled</span></div><u><i data-w="1"></i></u></div>
+                <div class="qc-bar"><div><span>Unique rows</span><span class="mono">2% duplicates</span></div><u><i data-w="0.98"></i></u></div>
+                <div class="qc-bar"><div><span>Up to date</span><span class="mono">Latest 2026-10-30</span></div><u><i data-w="0.93"></i></u></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Staged UI: the payout receipt -->
+          <div id="slabPay" class="slab obj">
+            <div class="ui-card pay-card">
+              <div class="pay-top">
+                <div>
+                  <span class="ui-pill good">Contributors paid</span>
+                  <div class="pay-h">Order complete.</div>
+                  <div class="pay-s">$12.39 total · $0.62 platform fee (5%)</div>
+                </div>
+                <div class="pay-total">
+                  <div class="qc-k">Paid to contributors</div>
+                  <div class="pay-v" id="payV">$0.00</div>
+                </div>
+              </div>
+              <div class="pay-rows">
+                <div class="pay-row" id="payR0"><span class="mono">maya</span><u><i></i></u><span class="mono pay-a"><b id="payA0">+$0.00</b> <em>51%</em></span></div>
+                <div class="pay-row" id="payR1"><span class="mono">kofi</span><u><i></i></u><span class="mono pay-a"><b id="payA1">+$0.00</b> <em>31%</em></span></div>
+                <div class="pay-row" id="payR2"><span class="mono">amina</span><u><i></i></u><span class="mono pay-a"><b id="payA2">+$0.00</b> <em>19%</em></span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Staged UI: the auto-buy bot's activity list -->
+          <div id="slabBot" class="slab obj">
+            <div class="ui-card bot-card">
+              <div class="bot-h">Activity</div>
+              <div class="bot-rows" id="botRows"></div>
+            </div>
+          </div>
+
+          <!-- End card -->
+          <svg id="endMark" class="obj" viewBox="0 0 32 32" fill="none">
+            <circle id="emRing" cx="16" cy="16" r="15" stroke="#fff" stroke-width="1.5" pathLength="1" />
+            <path id="emArc1" d="M9 13.5c2.2-2.6 4.6-3.9 7-3.9s4.8 1.3 7 3.9" stroke="#fff" stroke-width="1.5" stroke-linecap="round" pathLength="1" />
+            <path id="emArc2" d="M9 18.5c2.2 2.6 4.6 3.9 7 3.9s4.8-1.3 7-3.9" stroke="#fff" stroke-width="1.5" stroke-linecap="round" pathLength="1" />
+            <circle id="emDot" cx="16" cy="16" r="2.25" fill="#fff" />
+          </svg>
+        </div>
+
+        <!-- Inside the vault -->
+        <div id="inside" class="layer">
+          <div class="in-frame"></div>
+          <div class="in-beam"></div>
+          <div id="inSheet" class="paper"></div>
+          <div id="inScan"></div>
+          <div id="inBars">
+            <div class="in-stat">
+              <div class="in-k">Prediction accuracy</div>
+              <div class="mono in-acc">43% <em>→</em> <b id="inAcc">43%</b></div>
+            </div>
+            <div class="in-bar"><div><span>Complete data</span><span class="mono">100% filled</span></div><u><i data-w="1"></i></u></div>
+            <div class="in-bar"><div><span>Unique rows</span><span class="mono">2% duplicates</span></div><u><i data-w="0.98"></i></u></div>
+            <div class="in-bar"><div><span>Up to date</span><span class="mono">Latest 2026-10-30</span></div><u><i data-w="0.93"></i></u></div>
+            <div class="in-bar"><div><span>Columns match the goal</span><span class="mono">4 matching</span></div><u><i data-w="1"></i></u></div>
+          </div>
+        </div>
+
+        <!-- Typography -->
+        <div id="type" class="layer">
+          <div class="t xl" id="t1a" style="left:150px; top:150px">Show it.</div>
+          <div class="t xl" id="t1b" style="left:150px; top:330px">Lose it.</div>
+          <div class="t xl" id="t2a" style="left:150px; top:210px">Or buy it blind.</div>
+          <div class="t lg" id="t2b" style="left:150px; top:600px; width:900px">No way to check first.</div>
+          <div class="t lg center" id="t3a" style="left:0; width:1920px; top:120px">What if nobody had to look?</div>
+          <div class="brand" id="t3b" style="left:1020px; top:380px">Sealed Market</div>
+          <div class="t md" id="t3c" style="left:1024px; top:540px">Sell answers, not spreadsheets.</div>
+          <div class="t lg" id="t4a" style="left:1030px; top:110px; width:800px">Locked before it leaves.</div>
+          <div class="t xl" id="t5a" style="left:150px; top:120px">Tested inside.</div>
+          <div class="t lg" id="t5b" style="left:150px; top:150px; width:760px">Only the score leaves.</div>
+          <div class="t lg" id="t6a" style="left:1100px; top:330px; width:760px">Know before you pay.</div>
+          <div class="t xl" id="t7a" style="left:150px; top:150px; width:760px">Pay per answer.</div>
+          <div class="t lg" id="t7b" style="left:150px; top:170px; width:800px">Under 20 rows: blocked.</div>
+          <div class="t lg" id="t8a" style="left:1060px; top:150px; width:800px">Everyone who contributed, paid.</div>
+          <div class="t xl" id="t8b" style="left:150px; top:170px; width:760px">Or 100% back.</div>
+          <div class="t lg" id="t9a" style="left:1100px; top:270px; width:760px">For people. And agents.</div>
+          <div class="brand end" id="t10a" style="left:0; width:1920px; top:560px">Sealed Market</div>
+          <div class="t md center" id="t10b" style="left:0; width:1920px; top:716px">Sell answers, not spreadsheets.</div>
+          <div class="url mono" id="t10c" style="left:0; width:1920px; top:842px">sealed-market.vercel.app</div>
+          <div class="fine" id="t10d" style="left:0; width:1920px; top:972px">Testnet preview. Sample data is fictional.</div>
+        </div>
+
+        <div id="flash" class="layer"></div>
+        <div id="vignette" class="layer"></div>
+        <div id="grain" class="layer"></div>
+        <div id="fade" class="layer"></div>
+      </div>
+    </div>
+    <script src="assets/film.js"></script>
+  </body>
+</html>
